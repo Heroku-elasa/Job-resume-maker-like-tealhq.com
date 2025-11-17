@@ -34,7 +34,7 @@ export const useLanguage = () => {
 };
 
 // --- TYPE DEFINITIONS ---
-export type PageKey = 'legal_drafter' | 'lawyer_finder' | 'news_summarizer' | 'case_strategist' | 'notary_finder' | 'web_analyzer' | 'contract_analyzer' | 'evidence_analyzer' | 'image_generator' | 'corporate_services' | 'insurance_services' | 'job_assistant';
+export type PageKey = 'legal_drafter' | 'lawyer_finder' | 'news_summarizer' | 'case_strategist' | 'notary_finder' | 'web_analyzer' | 'contract_analyzer' | 'evidence_analyzer' | 'image_generator' | 'corporate_services' | 'insurance_services' | 'job_assistant' | 'resume_analyzer';
 
 export interface LatLng {
   latitude: number;
@@ -134,6 +134,17 @@ export interface JobApplication {
     notes?: string;
 }
 
+// --- NEW RESUME ANALYZER TYPES ---
+export type ResumeAnalysisStatus = 'present' | 'implicit' | 'missing';
+
+export interface ResumeAnalysisItem {
+  id: number;
+  category: string;
+  requirement: string;
+  status: ResumeAnalysisStatus;
+  evidence: string;
+}
+
 
 // --- APP STATE & CHECKPOINT SETUP ---
 
@@ -191,6 +202,7 @@ export interface AutoSaveData {
     goals: string;
   };
   jobAssistant_currentUserCv: string;
+  resumeAnalyzer_resumeText: string;
 }
 
 export interface AppState {
@@ -273,9 +285,13 @@ export interface AppState {
     goals: string;
   };
   insurance_lifeNeedsResult: string;
-  // New state for Job Assistant
+  // Job Assistant
   jobAssistant_applications: JobApplication[];
   jobAssistant_currentUserCv: string;
+  // Resume Analyzer
+  resumeAnalyzer_resumeText: string;
+  resumeAnalyzer_analysisResult: ResumeAnalysisItem[];
+  resumeAnalyzer_chatHistory: ChatMessage[];
 }
 export interface Checkpoint {
   id: string;

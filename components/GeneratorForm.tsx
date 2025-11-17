@@ -96,16 +96,16 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
 
 
   return (
-    <div className="bg-brand-blue/30 rounded-lg p-8 shadow-lg backdrop-blur-sm border border-brand-blue/50">
-      <h2 className="text-2xl font-bold mb-6 text-white">{t('generatorForm.title')}</h2>
+    <div className="bg-white rounded-lg p-8 shadow-lg border border-gray-200">
+      <h2 className="text-2xl font-bold mb-6 text-teal-dark">{t('generatorForm.title')}</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="docType" className={`block text-sm font-medium text-gray-300 relative transition-colors duration-500 ${isComplete ? 'strikethrough-animated' : ''}`}>{t('generatorForm.docType')}</label>
+          <label htmlFor="docType" className={`block text-sm font-medium text-gray-700 relative transition-colors duration-500`}>{t('generatorForm.docType')}</label>
           <select
             id="docType"
             value={docType}
             onChange={(e) => setDocType(e.target.value)}
-            className="mt-1 block w-full bg-brand-blue/50 border-brand-blue/70 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-gold focus:border-brand-gold sm:text-sm text-white"
+            className="mt-1 block w-full bg-gray-50 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-teal-blue focus:border-teal-blue sm:text-sm text-teal-dark"
           >
             {REPORT_TYPES.map(option => (
               <option key={option.value} value={option.value}>
@@ -115,7 +115,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
           </select>
         </div>
         <div>
-          <label htmlFor="topic" className={`block text-sm font-medium text-gray-300 relative transition-colors duration-500 ${isComplete ? 'strikethrough-animated' : ''}`}>{t('generatorForm.topic')}</label>
+          <label htmlFor="topic" className={`block text-sm font-medium text-gray-700 relative transition-colors duration-500`}>{t('generatorForm.topic')}</label>
           <div className="relative">
             <input
               type="text"
@@ -125,7 +125,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
               onFocus={() => setIsTopicFocused(true)}
               onBlur={() => setIsTopicFocused(false)}
               autoComplete="off"
-              className="mt-1 block w-full bg-brand-blue/50 border-brand-blue/70 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-gold focus:border-brand-gold sm:text-sm text-white"
+              className="mt-1 block w-full bg-gray-50 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-teal-blue focus:border-teal-blue sm:text-sm text-teal-dark"
               placeholder={t('generatorForm.topicPlaceholder')}
             />
             {isTopicFocused && (
@@ -139,11 +139,11 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
         </div>
         <div>
           <div className="flex justify-between items-center mb-1">
-            <label htmlFor="description" className={`block text-sm font-medium text-gray-300 relative transition-colors duration-500 ${isComplete ? 'strikethrough-animated' : ''}`}>{t('generatorForm.description')}</label>
+            <label htmlFor="description" className={`block text-sm font-medium text-gray-700 relative transition-colors duration-500`}>{t('generatorForm.description')}</label>
             <button
                 type="button"
                 onClick={handleUseExample}
-                className="text-xs text-brand-gold hover:underline focus:outline-none"
+                className="text-xs text-teal-blue hover:underline focus:outline-none"
             >
                 {t('generatorForm.useExample')}
             </button>
@@ -156,7 +156,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
               onChange={(e) => setDescription(e.target.value)}
               onFocus={() => setIsDescriptionFocused(true)}
               onBlur={() => setIsDescriptionFocused(false)}
-              className="block w-full bg-brand-blue/50 border-brand-blue/70 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-gold focus:border-brand-gold sm:text-sm text-white"
+              className="block w-full bg-gray-50 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-teal-blue focus:border-teal-blue sm:text-sm text-teal-dark"
               placeholder={t('generatorForm.descriptionPlaceholder')}
             />
             {isDescriptionFocused && (
@@ -168,14 +168,14 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
             )}
           </div>
           <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-brand-blue/50"></div>
-              <span className="flex-shrink mx-4 text-gray-400 text-xs">{t('camera.orDivider')}</span>
-              <div className="flex-grow border-t border-brand-blue/50"></div>
+              <div className="flex-grow border-t border-gray-200"></div>
+              <span className="flex-shrink mx-4 text-gray-500 text-xs">{t('camera.orDivider')}</span>
+              <div className="flex-grow border-t border-gray-200"></div>
           </div>
           <div className="space-y-2">
               <CameraInput onCapture={handleCapture} />
               {isExtractingText && (
-                  <div className="flex items-center justify-center text-sm text-gray-400 pt-2">
+                  <div className="flex items-center justify-center text-sm text-gray-500 pt-2">
                       <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -184,7 +184,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
                   </div>
               )}
               {extractionError && (
-                  <p className="mt-2 text-sm text-red-400 text-center">{extractionError}</p>
+                  <p className="mt-2 text-sm text-red-500 text-center">{extractionError}</p>
               )}
           </div>
         </div>
@@ -192,10 +192,10 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
           <button
             type="submit"
             disabled={isLoading || isQuotaExhausted}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-brand-blue bg-brand-gold hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-blue focus:ring-brand-gold disabled:bg-brand-gold/50 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-blue hover:bg-teal-light-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-blue disabled:bg-teal-blue/50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? (
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-brand-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>

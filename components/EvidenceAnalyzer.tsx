@@ -57,11 +57,16 @@ const EvidenceAnalyzer: React.FC<EvidenceAnalyzerProps> = ({
         if (acceptedFiles.length > 0) {
             const currentFile = acceptedFiles[0];
             setFile(currentFile);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreview(reader.result as string);
-            };
-            reader.readAsDataURL(currentFile);
+
+            if (currentFile.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreview(reader.result as string);
+                };
+                reader.readAsDataURL(currentFile);
+            } else {
+                setPreview(null); // No preview for non-image files like PDF
+            }
         }
     }, [t]);
 
@@ -71,6 +76,7 @@ const EvidenceAnalyzer: React.FC<EvidenceAnalyzerProps> = ({
             'image/jpeg': ['.jpg', '.jpeg'],
             'image/png': ['.png'],
             'image/webp': ['.webp'],
+            'application/pdf': ['.pdf'],
         },
         maxFiles: 1,
     });

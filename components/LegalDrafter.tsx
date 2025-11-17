@@ -51,7 +51,7 @@ const LegalDrafter: React.FC<LegalDrafterProps> = ({
             isQuotaExhausted={isQuotaExhausted}
           />
         </div>
-        <div className="lg:col-span-2 bg-brand-blue/30 rounded-lg shadow-lg backdrop-blur-sm border border-brand-blue/50">
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-lg border border-gray-200">
           <DocumentDisplay
             generatedDocument={generatedDocument}
             isLoading={isLoading}

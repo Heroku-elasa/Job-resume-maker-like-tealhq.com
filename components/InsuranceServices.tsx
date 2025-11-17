@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { produce } from 'immer';
 import { useDropzone } from 'react-dropzone';
@@ -160,7 +161,7 @@ const AutoClaimAssessorTool: React.FC<Pick<InsuranceServicesProps, 'onAutoClaimA
     const [fileError, setFileError] = useState<string|null>(null);
     const [useThinkingMode, setUseThinkingMode] = useState(false);
     const onDrop = useCallback((accepted:File[], rejected:any[]) => { if(rejected.length) setFileError(t('contractAnalyzer.unsupportedFileType')); else { setFile(accepted[0]); setFileError(null); }},[t]);
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: {'image/jpeg':[], 'image/png':[]}, maxFiles: 1 });
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: {'image/jpeg':[], 'image/png':[], 'application/pdf': ['.pdf']}, maxFiles: 1 });
     const handleCapture = (base64Data: string, mimeType: string) => { /* logic to create file */ };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

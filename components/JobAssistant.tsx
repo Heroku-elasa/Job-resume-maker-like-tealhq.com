@@ -2,10 +2,11 @@ import React, { useState, useCallback } from 'react';
 import { produce } from 'immer';
 import { useDropzone } from 'react-dropzone';
 import { nanoid } from 'nanoid';
-import { JobApplication, JobDetails, useLanguage, JobApplicationStatus } from '../types';
+import { JobApplication, JobDetails, useLanguage, JobApplicationStatus, FilePart } from '../types';
 import * as geminiService from '../services/geminiService';
 import * as dbService from '../services/dbService';
 import { marked } from 'marked';
+import mammoth from 'mammoth';
 
 interface JobAssistantProps {
     applications: JobApplication[];
@@ -17,16 +18,53 @@ interface JobAssistantProps {
     isQuotaExhausted: boolean;
 }
 
+const fileToBase64 = (file: File): Promise<string> => 
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.substring(result.indexOf(',') + 1)); 
+    };
+    reader.onerror = error => reject(error);
+  });
+
 const fileToText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        if (file.type !== 'text/plain' && file.type !== 'text/markdown') {
-             reject(new Error("UNSUPPORTED_FILE_TYPE"));
-             return;
+    return new Promise(async (resolve, reject) => {
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const arrayBuffer = e.target?.result;
+                if (arrayBuffer) {
+                    try {
+                        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer as ArrayBuffer });
+                        resolve(result.value);
+                    } catch (err) {
+                        reject(err);
+                    }
+                } else {
+                    reject(new Error("Failed to read DOCX file."));
+                }
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsArrayBuffer(file);
+        } else if (file.type === 'application/pdf') {
+            try {
+                const base64Data = await fileToBase64(file);
+                const filePart: FilePart = { mimeType: file.type, data: base64Data };
+                const text = await geminiService.extractTextFromImage(filePart);
+                resolve(text);
+            } catch (err) {
+                reject(err);
+            }
+        } else if (file.type === 'text/plain' || file.type === 'text/markdown') {
+            const reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+        } else {
+            reject(new Error("UNSUPPORTED_FILE_TYPE"));
         }
-        const reader = new FileReader();
-        reader.readAsText(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
     });
 };
 
@@ -78,7 +116,12 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { 'text/plain': ['.txt'], 'text/markdown': ['.md'] },
+        accept: { 
+            'text/plain': ['.txt'], 
+            'text/markdown': ['.md'],
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            'application/pdf': ['.pdf']
+        },
         maxFiles: 1,
     });
 

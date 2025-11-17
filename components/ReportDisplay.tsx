@@ -21,21 +21,23 @@ const getDocumentStyles = () => `
         src: url('https://sevinsazeh.com/wp-content/uploads/2024/03/IRANSansWebFaNum_Bold.woff2') format('woff2'),
              url('https://sevinsazeh.com/wp-content/uploads/2024/03/IRANSansWebFaNum_Bold.woff') format('woff');
     }
-    body { font-family: 'Iransans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.8; background-color: #f3f4f6; padding: 2rem; margin: 0; color: #111827; }
+    body { font-family: 'Inter', 'Iransans', sans-serif; line-height: 1.8; background-color: #f3f4f6; padding: 2rem; margin: 0; color: #111827; }
     .document-page { background-color: #ffffff; color: #111827; padding: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); max-width: 8.5in; min-height: 10in; margin: 0 auto; }
     .document-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 2rem; }
     .document-logo { display: flex; align-items: center; gap: 0.75rem; }
-    .document-logo svg { height: 50px; width: auto; }
+    .document-logo svg { height: 40px; width: auto; }
     .document-logo span { font-size: 1.125rem; font-weight: 700; color: #374151; }
     .document-header-info { text-align: right; font-size: 0.875rem; color: #4b5563; }
     body[dir="rtl"] .document-header-info { text-align: left; }
     .document-body { color: #111827; max-width: none; }
-    .document-body h1, .document-body h2, .document-body h3, .document-body h4 { color: #111827; font-family: 'Iransans', 'Inter', sans-serif; }
+    .document-body h1, .document-body h2, .document-body h3 { color: #005149; font-family: 'Inter', 'Iransans', sans-serif; }
+    .document-body h4, .document-body h5, .document-body h6 { color: #111827; font-family: 'Inter', 'Iransans', sans-serif; }
+    .document-body h1 { padding-bottom: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb; }
+    .document-body h2 { padding-bottom: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e5e7eb; }
     .document-body p, .document-body li { color: #374151; line-height: 2; }
     body[dir="rtl"] { direction: rtl; }
     body[dir="rtl"] .document-body { text-align: right; }
     body[dir="rtl"] .document-body p, body[dir="rtl"] .document-body li { text-align: justify; }
-    h1, h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
     code { font-family: monospace; background-color: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; }
     pre { background-color: #f4f4f4; padding: 1em; border-radius: 5px; overflow-x: auto; text-align: left; direction: ltr; }
     pre code { background-color: transparent; padding: 0; }
@@ -222,8 +224,8 @@ const DocumentDisplay: React.FC<DocumentDisplayProps> = ({ generatedDocument, is
   <div class="document-page">
     <div class="document-header">
         <div class="document-logo">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" fill="%23002279"/><path d="M32 12V20M32 20H18C16.8954 20 16 20.8954 16 22V24C16 25.1046 16.8954 26 18 26H32M32 20H46C47.1046 20 48 20.8954 48 22V24C48 25.1046 47.1046 26 46 26H32M18 26L22 48M46 26L42 48M14 52H50" stroke="%23D3B574" stroke-width="2.5"/></svg>
-            <span>دادگر AI</span>
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="12" fill="#005149"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="40" font-weight="bold" fill="#F5B501">ک</text></svg>
+            <span class="font-bold text-teal-dark">Kar-Yab AI</span>
         </div>
         <div class="document-header-info">
             <p><strong>${t('reportDisplay.headerDate')}:</strong> ${currentDate}</p>
@@ -285,10 +287,10 @@ const DocumentDisplay: React.FC<DocumentDisplayProps> = ({ generatedDocument, is
 
   return (
     <div className="min-h-[60vh] flex flex-col">
-      <div className="flex justify-between items-center p-4 bg-brand-blue/50 border-b border-brand-blue relative">
-        <h3 className="text-lg font-semibold text-white flex items-center" key={isComplete ? 'complete' : 'pending'}>
+      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 relative">
+        <h3 className="text-lg font-semibold text-teal-dark flex items-center" key={isComplete ? 'complete' : 'pending'}>
           {isComplete && (
-            <svg className="h-5 w-5 text-green-400 ml-2 animate-fade-in" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg className="h-5 w-5 text-green-500 ml-2 animate-fade-in" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
           )}
@@ -296,7 +298,7 @@ const DocumentDisplay: React.FC<DocumentDisplayProps> = ({ generatedDocument, is
         </h3>
         <div className="flex items-center space-x-2">
             {isComplete && (
-                 <button onClick={() => setIsSearchVisible(prev => !prev)} className="p-1.5 text-white hover:bg-brand-blue/80 rounded-md transition-colors" title="Search document">
+                 <button onClick={() => setIsSearchVisible(prev => !prev)} className="p-1.5 text-gray-600 hover:bg-gray-200 rounded-md transition-colors" title="Search document">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
                  </button>
             )}
@@ -304,22 +306,22 @@ const DocumentDisplay: React.FC<DocumentDisplayProps> = ({ generatedDocument, is
               <div className="relative" ref={exportMenuRef}>
                 <button
                   onClick={() => setIsExportMenuOpen(prev => !prev)}
-                  className="px-3 py-1 bg-brand-blue hover:bg-brand-blue/80 text-white text-sm rounded-md transition-colors flex items-center"
+                  className="px-3 py-1 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm rounded-md transition-colors flex items-center"
                 >
                   {t('reportDisplay.export')}
                   <svg className={`w-4 h-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''} ${language === 'fa' ? 'mr-2' : 'ml-2'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
                 {isExportMenuOpen && (
-                  <div className={`absolute mt-2 w-48 bg-brand-blue rounded-md shadow-lg z-20 border border-brand-blue/50 ${language === 'fa' ? 'left-0' : 'right-0'}`}>
-                    <ul className="py-1 text-white text-sm">
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handleCopy}>{t('reportDisplay.copy')}</li>
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handleDownloadMD}>{t('reportDisplay.downloadMD')}</li>
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handleDownloadDOCX}>{t('reportDisplay.downloadDOCX')}</li>
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handleDownloadHTML}>{t('reportDisplay.downloadHTML')}</li>
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handlePrint}>{t('reportDisplay.printPDF')}</li>
-                      <li className="border-t border-brand-blue/50 my-1"></li>
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handleShareEmail}>{t('reportDisplay.shareEmail')}</li>
-                      <li className="px-4 py-2 hover:bg-brand-blue/70 cursor-pointer" onClick={handleShareWhatsApp}>{t('reportDisplay.shareWhatsApp')}</li>
+                  <div className={`absolute mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-gray-200 ${language === 'fa' ? 'left-0' : 'right-0'}`}>
+                    <ul className="py-1 text-gray-700 text-sm">
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handleCopy}>{t('reportDisplay.copy')}</li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handleDownloadMD}>{t('reportDisplay.downloadMD')}</li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handleDownloadDOCX}>{t('reportDisplay.downloadDOCX')}</li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handleDownloadHTML}>{t('reportDisplay.downloadHTML')}</li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handlePrint}>{t('reportDisplay.printPDF')}</li>
+                      <li className="border-t border-gray-200 my-1"></li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handleShareEmail}>{t('reportDisplay.shareEmail')}</li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={handleShareWhatsApp}>{t('reportDisplay.shareWhatsApp')}</li>
                     </ul>
                   </div>
                 )}
@@ -327,46 +329,46 @@ const DocumentDisplay: React.FC<DocumentDisplayProps> = ({ generatedDocument, is
             )}
         </div>
         {isSearchVisible && isComplete && (
-            <div className="absolute top-full left-0 right-0 bg-brand-blue/80 backdrop-blur-sm p-2 z-10 border-b border-brand-blue flex items-center gap-2 animate-fade-in">
+            <div className="absolute top-full left-0 right-0 bg-gray-100 p-2 z-10 border-b border-gray-200 flex items-center gap-2 animate-fade-in">
                  <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search..."
-                    className="flex-grow bg-indigo-950/80 border-brand-blue/70 rounded-md py-1 px-3 focus:outline-none focus:ring-2 focus:ring-brand-gold text-white text-sm"
+                    className="flex-grow bg-white border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-2 focus:ring-teal-blue text-teal-dark text-sm"
                 />
-                <span className="text-xs text-gray-300 w-20 text-center">
+                <span className="text-xs text-gray-500 w-20 text-center">
                     {searchMatches.length > 0 ? `${currentMatchIndex + 1} / ${searchMatches.length}` : '0 / 0'}
                 </span>
-                <button onClick={handlePrevMatch} disabled={searchMatches.length === 0} className="p-1 text-white disabled:text-gray-500 hover:bg-brand-blue/80 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg></button>
-                <button onClick={handleNextMatch} disabled={searchMatches.length === 0} className="p-1 text-white disabled:text-gray-500 hover:bg-brand-blue/80 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg></button>
-                <button onClick={() => setIsSearchVisible(false)} className="p-1 text-white hover:bg-brand-blue/80 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button>
+                <button onClick={handlePrevMatch} disabled={searchMatches.length === 0} className="p-1 text-gray-600 disabled:text-gray-300 hover:bg-gray-200 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg></button>
+                <button onClick={handleNextMatch} disabled={searchMatches.length === 0} className="p-1 text-gray-600 disabled:text-gray-300 hover:bg-gray-200 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg></button>
+                <button onClick={() => setIsSearchVisible(false)} className="p-1 text-gray-600 hover:bg-gray-200 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button>
             </div>
         )}
       </div>
-      <div className="flex-grow overflow-y-auto bg-brand-blue/30 p-4 sm:p-8">
+      <div className="flex-grow overflow-y-auto bg-gray-100 p-4 sm:p-8">
         <div className="document-page">
           {!isLoading && !error && isComplete && (
             <div className="document-header animate-fade-in">
                 <div className="document-logo">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" fill="#002279"/><path d="M32 12V20M32 20H18C16.8954 20 16 20.8954 16 22V24C16 25.1046 16.8954 26 18 26H32M32 20H46C47.1046 20 48 20.8954 48 22V24C48 25.1046 47.1046 26 46 26H32M18 26L22 48M46 26L42 48M14 52H50" stroke="#374151" stroke-width="2.5"/></svg>
-                    <span className="font-bold">دادگر AI</span>
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="12" fill="#005149"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="40" font-weight="bold" fill="#F5B501">ک</text></svg>
+                    <span className="font-bold text-teal-dark">Kar-Yab AI</span>
                 </div>
                 <div className="document-header-info">
-                    <p><strong>{t('reportDisplay.headerDate')}:</strong> {currentDate}</p>
+                    <p><strong>${t('reportDisplay.headerDate')}:</strong> ${currentDate}</p>
                     <p><strong>${t('reportDisplay.headerCaseNo')}:</strong> ${t('reportDisplay.caseNoPlaceholder')}</p>
                 </div>
             </div>
           )}
 
           <div className="document-body">
-            {error && <div className="text-red-500 p-4 bg-red-100/10 border border-red-500/30 rounded-md">{error}</div>}
+            {error && <div className="text-red-600 p-4 bg-red-100 border border-red-200 rounded-md">{error}</div>}
             
             <div className="prose prose-sm sm:prose-base max-w-none prose-p:text-gray-800 prose-li:text-gray-800" dangerouslySetInnerHTML={{ __html: reportHtml }} />
 
             {isLoading && (
               <div className="flex items-center justify-center pt-4">
-                <div className="w-4 h-4 border-2 border-dashed rounded-full animate-spin border-brand-gold"></div>
+                <div className="w-4 h-4 border-2 border-dashed rounded-full animate-spin border-teal-blue"></div>
                 <span className="text-gray-500 ${language === 'fa' ? 'mr-2' : 'ml-2'}">{t('reportDisplay.generating')}</span>
               </div>
             )}

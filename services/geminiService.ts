@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 // FIX: Added JobDetails to imports for new functions.
-import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails } from '../types';
+import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem } from '../types';
 
 // Centralized, robust error handler for API call errors
 function throwEnhancedError(error: unknown, defaultMessage: string): never {
@@ -310,7 +310,7 @@ export async function routeUserIntent(goal: string, promptTemplate: string): Pro
       properties: {
         module: { 
           type: Type.STRING,
-          enum: ['legal_drafter', 'lawyer_finder', 'news_summarizer', 'case_strategist', 'notary_finder', 'web_analyzer', 'contract_analyzer', 'evidence_analyzer', 'image_generator', 'corporate_services', 'insurance_services', 'job_assistant']
+          enum: ['legal_drafter', 'lawyer_finder', 'news_summarizer', 'case_strategist', 'notary_finder', 'web_analyzer', 'contract_analyzer', 'evidence_analyzer', 'image_generator', 'corporate_services', 'insurance_services', 'job_assistant', 'resume_analyzer']
         },
         confidencePercentage: { type: Type.NUMBER },
         reasoning: { type: Type.STRING },
@@ -337,7 +337,7 @@ export async function routeUserIntent(goal: string, promptTemplate: string): Pro
   if (Array.isArray(parsedResult)) {
       return parsedResult.filter((item: any) => 
           typeof item === 'object' && item !== null &&
-          ['legal_drafter', 'lawyer_finder', 'news_summarizer', 'case_strategist', 'notary_finder', 'web_analyzer', 'contract_analyzer', 'evidence_analyzer', 'image_generator', 'corporate_services', 'insurance_services', 'job_assistant'].includes(item.module)
+          ['legal_drafter', 'lawyer_finder', 'news_summarizer', 'case_strategist', 'notary_finder', 'web_analyzer', 'contract_analyzer', 'evidence_analyzer', 'image_generator', 'corporate_services', 'insurance_services', 'job_assistant', 'resume_analyzer'].includes(item.module)
       ) as IntentRoute[];
   }
   
@@ -350,9 +350,9 @@ export interface ChatResponse {
 }
 
 export async function generateChatResponse(history: ChatMessage[]): Promise<ChatResponse> {
-    const systemInstruction = `You are 'Dadgar AI', a friendly and professional AI legal assistant for a notary public office in Iran. Your goal is to help users navigate legal topics and understand the services offered.
-- Keep your responses concise, clear, and easy to understand for a non-lawyer.
-- When asked about a service, briefly explain it and suggest which tool in the app (like 'AI Drafter' or 'Lawyer Finder') could help.
+    const systemInstruction = `You are 'Kar-Yab AI', a friendly and professional AI career assistant for job seekers in Iran. Your goal is to help users with their job search, resume building, and career questions.
+- Keep your responses concise, clear, and encouraging.
+- When asked about a service, briefly explain it and suggest which tool in the app (like 'Resume Builder' or 'Resume Analyzer') could help.
 - After every response, you MUST provide three relevant, short, follow-up questions or actions the user might want to take next.
 - Your entire output must be a single JSON object matching the requested schema. Do not add any text before or after the JSON.`;
 
@@ -467,6 +467,106 @@ export async function analyzeImage(
         throwEnhancedError(error, 'Failed to analyze image.');
     }
 }
+
+export async function analyzeResume(resumeText: string, criteria: any[]): Promise<ResumeAnalysisItem[]> {
+    const prompt = `You are an expert HR analyst and career coach. Analyze the following resume text based on the provided ${criteria.length} criteria. For each criterion, determine if it is 'present' (explicitly stated), 'implicit' (can be reasonably inferred), or 'missing'. Provide a brief 'evidence' string from the resume that supports your determination, or a short reason if missing/implicit. Return your analysis as a JSON array.
+
+Resume Text:
+---
+${resumeText}
+---
+
+Criteria:
+---
+${JSON.stringify(criteria, null, 2)}
+---`;
+
+    const responseSchema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                id: { type: Type.NUMBER },
+                category: { type: Type.STRING },
+                requirement: { type: Type.STRING },
+                status: { type: Type.STRING, enum: ['present', 'implicit', 'missing'] },
+                evidence: { type: Type.STRING },
+            },
+            required: ['id', 'category', 'requirement', 'status', 'evidence'],
+        },
+    };
+
+    try {
+        const response = await callApi({
+            stream: false,
+            model: "gemini-2.5-pro",
+            contents: [{ parts: [{ text: prompt }] }],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+                temperature: 0.1,
+            },
+        });
+        const geminiResponse = await response.json();
+        const jsonText = geminiResponse.text.trim();
+        const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
+        return JSON.parse(cleanJson);
+    } catch (error) {
+        throwEnhancedError(error, 'Failed to analyze resume.');
+    }
+}
+
+export async function continueResumeChat(history: ChatMessage[], itemsToClarify: ResumeAnalysisItem[]): Promise<{ reply: string; updatedItem: ResumeAnalysisItem | null }> {
+    const prompt = `You are a friendly and encouraging AI interviewer. Your goal is to help the user complete their 'real resume' by asking questions about missing information.
+Here is the chat history so far:
+${history.map(m => `${m.role}: ${m.text}`).join('\n')}
+
+Here are the items that are still missing or need clarification. Prioritize asking about 'Assets & Resources' first if available.
+${JSON.stringify(itemsToClarify.slice(0, 10), null, 2)}
+
+Based on the user's last message, first, analyze if their message answers any of the missing items. If it does, create an 'updatedItem' object for it with a new status of 'present' and evidence based on their answer.
+Then, ask the *next single question* from the list to continue the conversation. Be concise and friendly.
+Return a JSON object with your reply and the updatedItem (if any).`;
+
+    const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+            reply: { type: Type.STRING, description: "Your next question or comment to the user." },
+            updatedItem: {
+                type: Type.OBJECT,
+                nullable: true,
+                properties: {
+                    id: { type: Type.NUMBER },
+                    category: { type: Type.STRING },
+                    requirement: { type: Type.STRING },
+                    status: { type: Type.STRING, enum: ['present'] },
+                    evidence: { type: Type.STRING },
+                },
+                required: ['id', 'category', 'requirement', 'status', 'evidence'],
+            },
+        },
+        required: ['reply'],
+    };
+
+    try {
+        const response = await callApi({
+            stream: false,
+            model: "gemini-2.5-flash",
+            contents: [{ parts: [{ text: prompt }] }],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            },
+        });
+        const geminiResponse = await response.json();
+        const jsonText = geminiResponse.text.trim();
+        const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
+        return JSON.parse(cleanJson);
+    } catch (error) {
+        throwEnhancedError(error, 'Failed to get chat response.');
+    }
+}
+
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
   const scrapeResponse = await fetch('/api/generate', {
@@ -633,7 +733,7 @@ export async function applyByEmail(applicationId: string, email: string): Promis
 
 export async function extractTextFromImage(file: FilePart): Promise<string> {
     const model = 'gemini-2.5-flash';
-    const prompt = 'Extract all visible text from this document image. Present the text exactly as it appears, preserving formatting and paragraphs as best as possible. Do not add any commentary or explanation.';
+    const prompt = 'Extract all visible text from this document. Present the text exactly as it appears, preserving formatting and paragraphs as best as possible. Do not add any commentary or explanation.';
 
     const parts: any[] = [
         { text: prompt },
@@ -651,7 +751,7 @@ export async function extractTextFromImage(file: FilePart): Promise<string> {
         const geminiResponse = await response.json();
         return geminiResponse.text;
     } catch (error) {
-        throwEnhancedError(error, 'Failed to extract text from image.');
+        throwEnhancedError(error, 'Failed to extract text from file.');
     }
 }
 
