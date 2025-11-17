@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { produce } from 'immer';
 import { nanoid } from 'nanoid';
@@ -117,7 +116,7 @@ const initialState: AppState = {
 };
 
 const App: React.FC = () => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [state, setState] = useState<AppState>(initialState);
   const [isLoading, setIsLoading] = useState(false);
   const [isApiError, setIsApiError] = useState<string | null>(null);
@@ -131,6 +130,16 @@ const App: React.FC = () => {
   const [preparedSearchQuery, setPreparedSearchQuery] = useState(preparedSearchQueryRef.current);
 
   const saveTimeout = useRef<number | null>(null);
+  
+  useEffect(() => {
+    // Set document direction based on language
+    document.documentElement.dir = language === 'fa' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+    document.body.className = language === 'fa' 
+      ? 'bg-teal-light font-iransans' 
+      : 'bg-teal-light font-sans';
+  }, [language]);
+
 
   const handleApiError = useCallback((err: unknown): string => {
     const error = err instanceof Error ? err : new Error(String(err));
@@ -339,7 +348,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col bg-teal-light text-teal-dark font-sans`}>
+    <div className={`min-h-screen flex flex-col text-teal-dark`}>
       <SiteHeader 
         currentPage={state.page} 
         setPage={setPage} 

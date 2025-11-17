@@ -1,4 +1,3 @@
-
 // This is a Cloudflare Pages Function that acts as a serverless backend.
 // It will be deployed automatically when placed in the /functions directory.
 

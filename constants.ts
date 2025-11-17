@@ -59,7 +59,7 @@ export const fa = {
         templates: 'قالب‌ها و نمونه‌ها',
         resources: 'منابع',
         company: 'شرکت',
-        copyright: `© ${new Date().getFullYear()} Teal Labs, Inc. تمام حقوق محفوظ است.`
+        copyright: `© ${new Date().getFullYear()} Kar-Yab AI. تمام حقوق محفوظ است.`
     },
     // Keep other translations...
     jobAssistant: {
@@ -155,7 +155,7 @@ export const en = {
     },
     home: {
         title: 'Better Resume. Faster Search. 6X the Interviews.',
-        subtitle: "Simplify your job search and land your next job 58% faster with Teal's suite of career tools.",
+        subtitle: "Simplify your job search and land your next job faster with Kar-Yab's suite of career tools.",
         cta: "Sign Up! - It's 100% Free!",
         tabs: {
             resumeBuilder: 'AI Resume Builder',
@@ -171,7 +171,7 @@ export const en = {
             cta: 'Get Started for Free'
         },
         otherFeatures: {
-            title: 'Other Teal features'
+            title: 'Other Features'
         }
     },
     footer: {
@@ -179,7 +179,7 @@ export const en = {
         templates: 'Templates & Examples',
         resources: 'Resources',
         company: 'Company',
-        copyright: `© ${new Date().getFullYear()} Teal Labs, Inc. All rights reserved.`
+        copyright: `© ${new Date().getFullYear()} Kar-Yab AI. All rights reserved.`
     },
     jobAssistant: {
         heroDescription: 'Intelligently prepare your resume and cover letter for any job posting.',

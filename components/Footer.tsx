@@ -33,12 +33,12 @@ const SiteFooter: React.FC<SiteFooterProps> = ({ setPage }) => {
     };
 
     return (
-        <footer className="bg-teal-red text-white">
+        <footer className="bg-teal-dark text-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
                     <div className="col-span-2 md:col-span-1 mb-8 md:mb-0">
-                         <img className="h-8 w-auto mb-4" src="https://cdn.prod.website-files.com/62775a91cc3db44c787149de/62775d8abf9f57629c567a0a_Group%201148.svg" alt="Teal Logo" style={{filter: 'brightness(0) invert(1)'}} />
-                         <p className="text-sm text-gray-300">Over 3.6 Million Users</p>
+                         <span className="text-2xl font-bold text-white mb-4">Kar-Yab AI</span>
+                         <p className="text-sm text-gray-300 mt-4">Over 3.6 Million Users</p>
                     </div>
                     <div className="space-y-4">
                         <h2 className="text-sm font-semibold uppercase tracking-wider">{t('footer.tools')}</h2>
@@ -66,12 +66,12 @@ const SiteFooter: React.FC<SiteFooterProps> = ({ setPage }) => {
                     </div>
                 </div>
             </div>
-            <div className="bg-gray-100 text-gray-600">
+            <div className="bg-gray-800 text-gray-400">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center text-sm">
                     <p>{t('footer.copyright')}</p>
                     <div className="flex space-x-4 mt-4 sm:mt-0">
-                        <a href="#" className="hover:text-gray-900">Privacy Policy</a>
-                        <a href="#" className="hover:text-gray-900">Terms of Service</a>
+                        <a href="#" className="hover:text-white">Privacy Policy</a>
+                        <a href="#" className="hover:text-white">Terms of Service</a>
                     </div>
                 </div>
             </div>

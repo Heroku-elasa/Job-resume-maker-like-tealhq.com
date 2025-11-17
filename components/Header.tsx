@@ -54,8 +54,8 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage }) => {
         <div className="flex items-center justify-between h-20">
           {/* Logo and Main Nav */}
           <div className="flex items-center">
-            <button onClick={() => handlePageChange('home')} className="flex-shrink-0">
-              <img className="h-8 w-auto" src="https://cdn.prod.website-files.com/62775a91cc3db44c787149de/62775d8abf9f57629c567a0a_Group%201148.svg" alt="Teal Logo" />
+            <button onClick={() => handlePageChange('home')} className="flex-shrink-0 text-2xl font-bold text-teal-green">
+              Kar-Yab AI
             </button>
             <nav className="hidden md:flex md:ml-10 md:space-x-8">
               <button onClick={() => handlePageChange('job_assistant')} className="text-gray-700 hover:text-teal-blue font-medium transition-colors">
@@ -112,7 +112,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage }) => {
             <div className="pt-5 pb-6 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                   <img className="h-8 w-auto" src="https://cdn.prod.website-files.com/62775a91cc3db44c787149de/62775d8abf9f57629c567a0a_Group%201148.svg" alt="Teal Logo" />
+                   <span className="text-2xl font-bold text-teal-green">Kar-Yab AI</span>
                 </div>
                 <div className="-mr-2">
                   <button onClick={() => setIsMobileMenuOpen(false)} type="button" className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100">

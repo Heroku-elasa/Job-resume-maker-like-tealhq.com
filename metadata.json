@@ -1,6 +1,6 @@
 {
-  "name": "Job resume maker  like tealhq.com",
-  "description": "An AI-powered assistant for legal and insurance professionals in Iran. Draft documents, analyze contracts, find professionals, and get strategic insights.",
+  "name": "Kar-Yab AI | رزومه‌ساز هوشمند",
+  "description": "رزومه‌ساز هوشمند با قدرت هوش مصنوعی و ردیاب شغل برای متخصصان ایرانی. رزومه خود را بر اساس پروفایل لینکدین بسازید، برای موقعیت‌های شغلی بهینه کنید و فرآیند کاریابی را مدیریت کنید.",
   "requestFramePermissions": [
     "camera",
     "geolocation"
