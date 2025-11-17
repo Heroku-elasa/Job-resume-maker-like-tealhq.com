@@ -1,0 +1,8 @@
+{
+  "name": "Job resume maker  like tealhq.com",
+  "description": "An AI-powered assistant for legal and insurance professionals in Iran. Draft documents, analyze contracts, find professionals, and get strategic insights.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
