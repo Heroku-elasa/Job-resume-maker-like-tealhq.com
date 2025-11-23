@@ -1,126 +1,90 @@
-import { Type } from "@google/genai";
-// FIX: Added JobDetails to imports for new functions.
-import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem } from '../types';
 
-// Centralized, robust error handler for API call errors
-function throwEnhancedError(error: unknown, defaultMessage: string): never {
-    console.error("API Error:", error);
+import { GoogleGenAI, Type } from "@google/genai";
+import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication } from '../types';
 
-    let messageToParse: string;
-    
-    // Attempt to extract a meaningful message from various error types
-    if (error instanceof Error) {
-        messageToParse = error.message;
-    } else if (typeof error === 'object' && error !== null) {
-        const errorObj = error as any;
-        messageToParse = errorObj.error?.message || errorObj.message || JSON.stringify(error);
-    } else {
-        messageToParse = String(error);
-    }
-    
-    const lowerCaseMessage = messageToParse.toLowerCase();
+// --- INITIALIZATION ---
+// We use the Direct SDK for AI calls to prevent proxy timeouts on long tasks.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-    if (lowerCaseMessage.includes('api key not valid')) {
-        throw new Error('Invalid API Key. Please check your Cloudflare environment variables.');
+// --- HELPER FUNCTIONS ---
+
+/**
+ * Safely parses JSON from AI response, handling Markdown code blocks.
+ */
+function safeJsonParse<T>(text: string, context: string): T {
+    try {
+        if (!text) return {} as T;
+        // Remove markdown code blocks if present
+        const cleanedText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
+        return JSON.parse(cleanedText);
+    } catch (e) {
+        console.error(`JSON Parse Error in ${context}:`, text);
+        throw new Error(`AI returned invalid data format for ${context}.`);
     }
-    if (lowerCaseMessage.includes('permission_denied')) {
-        throw new Error('Permission Denied. Please ensure the Generative Language API is enabled for your project. (Permission Denied)');
-    }
-    if (lowerCaseMessage.includes('resource_exhausted') || lowerCaseMessage.includes('429')) {
-        if (lowerCaseMessage.includes('quota')) {
-            throw new Error('You have exceeded your API usage quota. Please check your Google AI Studio account for details. (Quota Exceeded)');
-        } else {
-            throw new Error('The AI model is currently busy. Please try again in a few moments. (Rate Limit Exceeded)');
+}
+
+/**
+ * Proxy caller specifically for Web Scraping (requires backend to bypass CORS).
+ */
+async function callScrapeProxy(url: string): Promise<string> {
+    try {
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'scrape', url }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || `Scraping failed: ${response.status}`);
         }
-    }
-    if (lowerCaseMessage.includes('400') || lowerCaseMessage.includes('invalid argument')) {
-        throw new Error('There was a problem with the request. Please check the prompt. (Bad Request)');
-    }
-    if (lowerCaseMessage.includes('500') || lowerCaseMessage.includes('internal error')) {
-        throw new Error('The AI service encountered an internal error. Please try again later. (Server Error)');
-    }
 
-    throw new Error(messageToParse || defaultMessage);
+        const data = await response.json();
+        return data.html || '';
+    } catch (error) {
+        console.error("Scrape Proxy Error:", error);
+        throw error;
+    }
 }
 
-// Generic helper function to call our backend proxy
-async function callApi(body: object) {
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
+// --- CORE AI FUNCTIONS ---
 
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ error: { message: `API request failed with status ${response.status}` } }));
-        throwEnhancedError(errorBody, 'An unknown API error occurred.');
+export async function* generateReportStream(prompt: string, useThinkingMode: boolean): AsyncGenerator<string, void, undefined> {
+    const model = useThinkingMode ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+    const config: any = {};
+    
+    if (useThinkingMode) {
+        config.thinkingConfig = { thinkingBudget: 32768 };
     }
-    return response;
-}
 
-export async function* generateReportStream(prompt: string): AsyncGenerator<string, void, undefined> {
-  const response = await callApi({
-      stream: true,
-      model: "gemini-2.5-flash",
-      contents: [{ parts: [{ text: prompt }] }],
-  });
+    try {
+        const response = await ai.models.generateContentStream({
+            model: model,
+            contents: [{ parts: [{ text: prompt }] }],
+            config: config
+        });
 
-  if (!response.body) {
-      throw new Error('Streaming response has no body');
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
-  let buffer = '';
-  while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep the last, potentially incomplete line
-
-      for (const line of lines) {
-          if (line.startsWith('data: ')) {
-              try {
-                  const json = JSON.parse(line.substring(6));
-                  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                  if (text) {
-                      yield text;
-                  }
-              } catch (e) {
-                  console.error('Failed to parse stream chunk:', line);
-              }
-          }
-      }
-  }
+        for await (const chunk of response) {
+            if (chunk.text) {
+                yield chunk.text;
+            }
+        }
+    } catch (error) {
+        console.error("Generate Report Error:", error);
+        throw new Error("Failed to generate report. Please check your connection.");
+    }
 }
 
 export async function generateSearchQuery(documentText: string): Promise<string> {
-    const prompt = `Based on the following legal document, generate a short, effective search query (under 10 words) to find a suitable professional in Iran. The query should specify the legal specialty and location if mentioned. Do not add any introduction or explanation, just the query text.
-  
-  Document:
-  ---
-  ${documentText}
-  ---
-  
-  Search Query:`;
-
-  try {
-    const response = await callApi({
-        stream: false,
-        model: "gemini-2.5-flash",
-        contents: [{ parts: [{ text: prompt }] }],
-        config: {
-            temperature: 0.2,
-        },
-    });
-    const geminiResponse = await response.json();
-    return geminiResponse.text.trim().replace(/["']/g, ""); // Remove quotes from the output
-  } catch (error) {
-    throwEnhancedError(error, 'Failed to generate search query.');
-  }
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-lite",
+            contents: [{ parts: [{ text: `Generate a short search query (under 10 words) for: ${documentText.substring(0, 500)}...` }] }]
+        });
+        return response.text?.trim().replace(/["']/g, "") || "";
+    } catch (e) {
+        return "";
+    }
 }
 
 export interface SearchResult {
@@ -129,11 +93,14 @@ export interface SearchResult {
 }
 
 async function performSearch(prompt: string, useThinkingMode: boolean, location?: LatLng | null): Promise<SearchResult> {
-    const model = useThinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+    const model = useThinkingMode ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+    const tools: any[] = [{ googleSearch: {} }];
     
-    const tools: any[] = [{googleSearch: {}}];
+    // Add Maps grounding if location is provided (and supported by the model/SDK version)
+    // Ideally we pass location in toolConfig, but for simplicity/compatibility we append context
+    let finalPrompt = prompt;
     if (location) {
-        tools.push({googleMaps: {}});
+        finalPrompt += ` (Context: Latitude ${location.latitude}, Longitude ${location.longitude})`;
     }
 
     const config: any = { tools };
@@ -141,207 +108,128 @@ async function performSearch(prompt: string, useThinkingMode: boolean, location?
         config.thinkingConfig = { thinkingBudget: 32768 };
     }
 
-    const response = await callApi({
-      stream: false,
-      model,
-      contents: [{ parts: [{ text: prompt }] }],
-      config,
-    });
-    
-    const geminiResponse = await response.json();
+    try {
+        const response = await ai.models.generateContent({
+            model,
+            contents: [{ parts: [{ text: finalPrompt }] }],
+            config
+        });
 
-    const text = geminiResponse.text; // The proxy adds this for convenience
-    const rawSources = geminiResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const sources: GroundingChunk[] = rawSources
-      .map((chunk: any): GroundingChunk | null => {
-        if (chunk.web && chunk.web.uri) {
-            return { web: { uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri }};
-        }
-        if (chunk.maps && chunk.maps.uri) {
-            return { maps: { uri: chunk.maps.uri, title: chunk.maps.title || chunk.maps.uri }};
-        }
-        return null;
-      })
-      .filter((s): s is GroundingChunk => s !== null);
+        const rawSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        const sources = rawSources.map((chunk: any) => {
+            if (chunk.web?.uri) return { web: { uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri }};
+            return null;
+        }).filter(Boolean);
 
-    return { text, sources };
+        return { text: response.text || "", sources };
+    } catch (error) {
+        console.error("Search Error:", error);
+        throw new Error("Search failed. Please try again.");
+    }
 }
 
+export async function findLawyers(prompt: string, location?: LatLng | null) { return performSearch(prompt, false, location); }
+export async function findNotaries(prompt: string, location?: LatLng | null) { return performSearch(prompt, false, location); }
+export async function summarizeNews(prompt: string, useThinkingMode: boolean) { return performSearch(prompt, useThinkingMode); }
+export async function analyzeWebPage(prompt: string, useThinkingMode: boolean) { return performSearch(prompt, useThinkingMode); }
 
-export async function findLawyers(prompt: string, location?: LatLng | null): Promise<SearchResult> {
-  return performSearch(prompt, false, location);
-}
-
-export async function findNotaries(prompt: string, location?: LatLng | null): Promise<SearchResult> {
-    return performSearch(prompt, false, location);
-}
-
-export async function summarizeNews(prompt: string, useThinkingMode: boolean): Promise<SearchResult> {
-    return performSearch(prompt, useThinkingMode);
-}
-
-export async function analyzeWebPage(prompt: string, useThinkingMode: boolean): Promise<SearchResult> {
-    return performSearch(prompt, useThinkingMode);
-}
+// --- STRUCTURED DATA GENERATION ---
 
 export async function generateStrategy(goal: string, promptTemplate: string, useThinkingMode: boolean): Promise<StrategyTask[]> {
-  const prompt = promptTemplate.replace('{goal}', goal);
-  const model = useThinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+    const prompt = promptTemplate.replace('{goal}', goal);
+    const model = useThinkingMode ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+    
+    const config: any = {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    taskName: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    effortPercentage: { type: Type.NUMBER },
+                    deliverableType: { type: Type.STRING },
+                    suggestedPrompt: { type: Type.STRING },
+                },
+                required: ['taskName', 'description', 'effortPercentage', 'deliverableType', 'suggestedPrompt']
+            }
+        }
+    };
 
-  const responseSchema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        taskName: { type: Type.STRING },
-        description: { type: Type.STRING },
-        effortPercentage: { type: Type.NUMBER },
-        deliverableType: { type: Type.STRING },
-        suggestedPrompt: { type: Type.STRING },
-      },
-      required: ['taskName', 'description', 'effortPercentage', 'deliverableType', 'suggestedPrompt'],
-    },
-  };
-  
-  const config: any = {
-    responseMimeType: "application/json",
-    responseSchema: responseSchema,
-  };
+    if (useThinkingMode) config.thinkingConfig = { thinkingBudget: 32768 };
 
-  if (useThinkingMode) {
-      config.thinkingConfig = { thinkingBudget: 32768 };
-  }
+    const response = await ai.models.generateContent({
+        model,
+        contents: [{ parts: [{ text: prompt }] }],
+        config
+    });
 
-  const response = await callApi({
-    stream: false,
-    model: model,
-    contents: [{ parts: [{ text: prompt }] }],
-    config: config,
-  });
-
-  const geminiResponse = await response.json();
-  const jsonText = geminiResponse.text.trim();
-  const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-  return JSON.parse(cleanJson);
+    return safeJsonParse(response.text || "[]", 'strategy');
 }
 
 export async function getSuggestions(query: string, contextPrompt: string): Promise<string[]> {
-  const prompt = `${contextPrompt}: "${query}"`;
+    const prompt = `${contextPrompt}: "${query}"`;
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-lite",
+            contents: [{ parts: [{ text: prompt }] }],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: { suggestions: { type: Type.ARRAY, items: { type: Type.STRING } } }
+                }
+            }
+        });
+        const parsed = safeJsonParse<{suggestions: string[]}>(response.text || "{}", 'suggestions');
+        return parsed.suggestions || [];
+    } catch { return []; }
+}
 
-  const responseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      suggestions: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-      }
-    },
-    required: ['suggestions']
-  };
-  
-  try {
-    const response = await callApi({
-      stream: false,
-      model: "gemini-2.5-flash",
-      contents: [{ parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        maxOutputTokens: 150,
-        temperature: 0.5,
-      },
-    });
-
-    const geminiResponse = await response.json();
-    const jsonText = geminiResponse.text.trim();
-    const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-    const result = JSON.parse(cleanJson);
+export async function prepareDraftFromTask(task: StrategyTask, template: string, options: string): Promise<DraftPreparationResult> {
+    const prompt = template.replace('{taskName}', task.taskName)
+                           .replace('{description}', task.description)
+                           .replace('{suggestedPrompt}', task.suggestedPrompt)
+                           .replace('{docTypeOptions}', options);
     
-    if (result.suggestions && Array.isArray(result.suggestions)) {
-        return result.suggestions.slice(0, 5);
-    }
-    return [];
-  } catch (error) {
-    console.error("Error fetching suggestions:", error);
-    return [];
-  }
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: { docType: { type: Type.STRING }, topic: { type: Type.STRING }, description: { type: Type.STRING } },
+                required: ['docType', 'topic', 'description']
+            }
+        }
+    });
+    return safeJsonParse(response.text || "{}", 'draft prep');
 }
 
-export async function prepareDraftFromTask(task: StrategyTask, promptTemplate: string, docTypeOptions: string): Promise<DraftPreparationResult> {
-  const prompt = promptTemplate
-    .replace('{taskName}', task.taskName)
-    .replace('{description}', task.description)
-    .replace('{suggestedPrompt}', task.suggestedPrompt)
-    .replace('{docTypeOptions}', docTypeOptions);
-
-  const responseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      docType: { type: Type.STRING },
-      topic: { type: Type.STRING },
-      description: { type: Type.STRING },
-    },
-    required: ['docType', 'topic', 'description'],
-  };
-
-  const response = await callApi({
-    stream: false,
-    model: "gemini-2.5-flash",
-    contents: [{ parts: [{ text: prompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-    },
-  });
-
-  const geminiResponse = await response.json();
-  const jsonText = geminiResponse.text.trim();
-  const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-  return JSON.parse(cleanJson);
-}
-
-export async function routeUserIntent(goal: string, promptTemplate: string): Promise<IntentRoute[]> {
-  const prompt = promptTemplate.replace('{goal}', goal);
-
-  const responseSchema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        module: { 
-          type: Type.STRING,
-          enum: ['legal_drafter', 'lawyer_finder', 'news_summarizer', 'case_strategist', 'notary_finder', 'web_analyzer', 'contract_analyzer', 'evidence_analyzer', 'image_generator', 'corporate_services', 'insurance_services', 'job_assistant', 'resume_analyzer']
-        },
-        confidencePercentage: { type: Type.NUMBER },
-        reasoning: { type: Type.STRING },
-      },
-      required: ['module', 'confidencePercentage', 'reasoning'],
-    },
-  };
-  
-  const response = await callApi({
-    stream: false,
-    model: "gemini-2.5-flash",
-    contents: [{ parts: [{ text: prompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-    },
-  });
-  
-  const geminiResponse = await response.json();
-  const jsonText = geminiResponse.text.trim();
-  const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-  const parsedResult = JSON.parse(cleanJson);
-
-  if (Array.isArray(parsedResult)) {
-      return parsedResult.filter((item: any) => 
-          typeof item === 'object' && item !== null &&
-          ['legal_drafter', 'lawyer_finder', 'news_summarizer', 'case_strategist', 'notary_finder', 'web_analyzer', 'contract_analyzer', 'evidence_analyzer', 'image_generator', 'corporate_services', 'insurance_services', 'job_assistant', 'resume_analyzer'].includes(item.module)
-      ) as IntentRoute[];
-  }
-  
-  throw new Error("Received invalid data structure from AI.");
+export async function routeUserIntent(goal: string, template: string): Promise<IntentRoute[]> {
+    const prompt = template.replace('{goal}', goal);
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        module: { type: Type.STRING },
+                        confidencePercentage: { type: Type.NUMBER },
+                        reasoning: { type: Type.STRING }
+                    },
+                    required: ['module', 'confidencePercentage', 'reasoning']
+                }
+            }
+        }
+    });
+    return safeJsonParse(response.text || "[]", 'intent routing');
 }
 
 export interface ChatResponse {
@@ -350,476 +238,288 @@ export interface ChatResponse {
 }
 
 export async function generateChatResponse(history: ChatMessage[]): Promise<ChatResponse> {
-    const systemInstruction = `You are 'Kar-Yab AI', a friendly and professional AI career assistant for job seekers in Iran. Your goal is to help users with their job search, resume building, and career questions.
-- Keep your responses concise, clear, and encouraging.
-- When asked about a service, briefly explain it and suggest which tool in the app (like 'Resume Builder' or 'Resume Analyzer') could help.
-- After every response, you MUST provide three relevant, short, follow-up questions or actions the user might want to take next.
-- Your entire output must be a single JSON object matching the requested schema. Do not add any text before or after the JSON.`;
-
-    const contents = history.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-    }));
-
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            reply: { type: Type.STRING },
-            suggestions: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-            },
-        },
-        required: ['reply', 'suggestions'],
-    };
-
-    const response = await callApi({
-        stream: false,
-        model: "gemini-2.5-flash",
-        contents: contents,
+    const contents = history.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents,
         config: {
-            systemInstruction: systemInstruction,
+            systemInstruction: "You are Kar-Yab AI, a helpful career and legal assistant. Respond in JSON.",
             responseMimeType: "application/json",
-            responseSchema: responseSchema,
-        },
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    reply: { type: Type.STRING },
+                    suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ['reply', 'suggestions']
+            }
+        }
     });
-
-    const geminiResponse = await response.json();
-    const jsonText = geminiResponse.text.trim();
-    const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-    const parsedResult = JSON.parse(cleanJson);
-    
-    if (typeof parsedResult.reply === 'string' && Array.isArray(parsedResult.suggestions)) {
-        return parsedResult;
-    }
-
-    throw new Error("Received invalid data structure from AI for chat.");
+    return safeJsonParse(response.text || "{}", 'chat response');
 }
 
+// --- MEDIA & ANALYSIS ---
+
 export async function analyzeContract(
-    content: { file?: FilePart; text?: string },
-    userQuery: string,
-    promptTemplate: string,
+    content: { file?: FilePart, text?: string }, 
+    query: string, 
+    template: string, 
     useThinkingMode: boolean
 ): Promise<string> {
-    const model = useThinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
-    const config = useThinkingMode ? { thinkingConfig: { thinkingBudget: 32768 } } : {};
+    const model = useThinkingMode ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+    const config: any = {};
+    if (useThinkingMode) config.thinkingConfig = { thinkingBudget: 32768 };
 
-    const userQuestion = userQuery || 'سوال خاصی پرسیده نشده است.';
-    let basePrompt = promptTemplate.replace('{userQuery}', userQuestion);
-
-    const parts: any[] = [];
+    const parts: any[] = [{ text: template.replace('{userQuery}', query || 'General analysis') }];
+    
     if (content.file) {
-        parts.push({ text: basePrompt });
         parts.push({ inlineData: { mimeType: content.file.mimeType, data: content.file.data } });
-    } else if (content.text) {
-        basePrompt += `\n\n${content.text}`;
-        parts.push({ text: basePrompt });
-    } else {
-        throw new Error("No content provided to analyze.");
     }
-    
-    const contents = { parts };
-    
-    try {
-        const response = await callApi({
-            stream: false,
-            model,
-            contents: [contents],
-            config,
-        });
-        const geminiResponse = await response.json();
-        return geminiResponse.text;
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to analyze contract.');
+    if (content.text) {
+        parts[0].text += `\n\n${content.text}`;
     }
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: [{ parts }],
+        config
+    });
+    return response.text || "";
 }
 
 export async function analyzeImage(
-    content: { file: FilePart },
-    userQuery: string,
-    promptTemplate: string,
+    content: { file: FilePart }, 
+    query: string, 
+    template: string, 
     useThinkingMode: boolean
 ): Promise<string> {
-    const model = useThinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
-    const config = useThinkingMode ? { thinkingConfig: { thinkingBudget: 32768 } } : {};
+    const model = useThinkingMode ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+    const config: any = {};
+    if (useThinkingMode) config.thinkingConfig = { thinkingBudget: 32768 };
 
-    const userQuestion = userQuery || 'Please analyze this image.';
-    const prompt = promptTemplate.replace('{userQuery}', userQuestion);
-    
-    const parts: any[] = [
-        { text: prompt },
-        { inlineData: { mimeType: content.file.mimeType, data: content.file.data } }
-    ];
-    
-    const contents = { parts };
-    
-    try {
-        const response = await callApi({
-            stream: false,
-            model,
-            contents: [contents],
-            config,
-        });
-        const geminiResponse = await response.json();
-        return geminiResponse.text;
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to analyze image.');
-    }
+    const response = await ai.models.generateContent({
+        model,
+        contents: [{ 
+            parts: [
+                { text: template.replace('{userQuery}', query) },
+                { inlineData: { mimeType: content.file.mimeType, data: content.file.data } }
+            ] 
+        }],
+        config
+    });
+    return response.text || "";
 }
 
-export async function analyzeResume(resumeText: string, criteria: any[]): Promise<ResumeAnalysisItem[]> {
-    const prompt = `You are an expert HR analyst and career coach. Analyze the following resume text based on the provided ${criteria.length} criteria. For each criterion, determine if it is 'present' (explicitly stated), 'implicit' (can be reasonably inferred), or 'missing'. Provide a brief 'evidence' string from the resume that supports your determination, or a short reason if missing/implicit. Return your analysis as a JSON array.
+export async function extractTextFromDocument(file: FilePart): Promise<string> {
+    const prompt = `Extract all visible text from this document. Use markdown for structure (tables, headings). If it's a resume, read strictly column-by-column.`;
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ 
+            parts: [
+                { text: prompt },
+                { inlineData: { mimeType: file.mimeType, data: file.data } }
+            ] 
+        }]
+    });
+    return response.text || "";
+}
 
-Resume Text:
----
-${resumeText}
----
+// --- RESUME & JOB ASSISTANT ---
 
-Criteria:
----
-${JSON.stringify(criteria, null, 2)}
----`;
+export async function analyzeResume(resumeText: string, criteria: any[]): Promise<ResumeAnalysisResult> {
+    const prompt = `Analyze this resume based on the criteria.
+Resume Text: ${resumeText.substring(0, 20000)}
+Criteria: ${JSON.stringify(criteria)}
+Output strictly JSON.`;
 
-    const responseSchema = {
-        type: Type.ARRAY,
-        items: {
-            type: Type.OBJECT,
-            properties: {
-                id: { type: Type.NUMBER },
-                category: { type: Type.STRING },
-                requirement: { type: Type.STRING },
-                status: { type: Type.STRING, enum: ['present', 'implicit', 'missing'] },
-                evidence: { type: Type.STRING },
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash", // Flash is best for large context + speed
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    overallScore: { type: Type.NUMBER },
+                    predictedJobTitle: { type: Type.STRING },
+                    summaryAndRecommendations: { type: Type.STRING },
+                    analysis: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                id: { type: Type.NUMBER },
+                                category: { type: Type.STRING },
+                                requirement: { type: Type.STRING },
+                                status: { type: Type.STRING, enum: ['present', 'implicit', 'missing'] },
+                                evidence: { type: Type.STRING },
+                            },
+                            required: ['id', 'category', 'requirement', 'status', 'evidence'],
+                        },
+                    },
+                },
+                required: ['overallScore', 'predictedJobTitle', 'summaryAndRecommendations', 'analysis'],
             },
-            required: ['id', 'category', 'requirement', 'status', 'evidence'],
+            maxOutputTokens: 8192 // Critical for large JSON
         },
-    };
-
-    try {
-        const response = await callApi({
-            stream: false,
-            model: "gemini-2.5-pro",
-            contents: [{ parts: [{ text: prompt }] }],
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-                temperature: 0.1,
-            },
-        });
-        const geminiResponse = await response.json();
-        const jsonText = geminiResponse.text.trim();
-        const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-        return JSON.parse(cleanJson);
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to analyze resume.');
-    }
+    });
+    return safeJsonParse(response.text || "{}", 'resume analysis');
 }
 
 export async function continueResumeChat(history: ChatMessage[], itemsToClarify: ResumeAnalysisItem[]): Promise<{ reply: string; updatedItem: ResumeAnalysisItem | null }> {
-    const prompt = `You are a friendly and encouraging AI interviewer. Your goal is to help the user complete their 'real resume' by asking questions about missing information.
-Here is the chat history so far:
-${history.map(m => `${m.role}: ${m.text}`).join('\n')}
+    const systemInstruction = "You are an AI interviewer helping complete a resume.";
+    const contents = history.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+    
+    // Add context to the last message
+    const lastMsg = contents[contents.length - 1];
+    lastMsg.parts[0].text += `\n\n[Context: Missing items to ask about: ${JSON.stringify(itemsToClarify.slice(0, 3))}]`;
 
-Here are the items that are still missing or need clarification. Prioritize asking about 'Assets & Resources' first if available.
-${JSON.stringify(itemsToClarify.slice(0, 10), null, 2)}
-
-Based on the user's last message, first, analyze if their message answers any of the missing items. If it does, create an 'updatedItem' object for it with a new status of 'present' and evidence based on their answer.
-Then, ask the *next single question* from the list to continue the conversation. Be concise and friendly.
-Return a JSON object with your reply and the updatedItem (if any).`;
-
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            reply: { type: Type.STRING, description: "Your next question or comment to the user." },
-            updatedItem: {
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents,
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: {
                 type: Type.OBJECT,
-                nullable: true,
                 properties: {
-                    id: { type: Type.NUMBER },
-                    category: { type: Type.STRING },
-                    requirement: { type: Type.STRING },
-                    status: { type: Type.STRING, enum: ['present'] },
-                    evidence: { type: Type.STRING },
+                    reply: { type: Type.STRING },
+                    updatedItem: {
+                        type: Type.OBJECT,
+                        nullable: true,
+                        properties: {
+                            id: { type: Type.NUMBER },
+                            category: { type: Type.STRING },
+                            requirement: { type: Type.STRING },
+                            status: { type: Type.STRING },
+                            evidence: { type: Type.STRING },
+                        },
+                        required: ['id', 'category', 'requirement', 'status', 'evidence'],
+                    },
                 },
-                required: ['id', 'category', 'requirement', 'status', 'evidence'],
-            },
-        },
-        required: ['reply'],
-    };
-
-    try {
-        const response = await callApi({
-            stream: false,
-            model: "gemini-2.5-flash",
-            contents: [{ parts: [{ text: prompt }] }],
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-            },
-        });
-        const geminiResponse = await response.json();
-        const jsonText = geminiResponse.text.trim();
-        const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-        return JSON.parse(cleanJson);
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to get chat response.');
-    }
+                required: ['reply'],
+            }
+        }
+    });
+    return safeJsonParse(response.text || "{}", 'resume chat');
 }
 
+// --- SCRAPING (VIA PROXY) & JOB GEN ---
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
-  const scrapeResponse = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'scrape', url: url }),
-  });
+    const html = await callScrapeProxy(url);
+    if (!html) throw new Error("Scraped content is empty");
 
-  if (!scrapeResponse.ok) {
-      const errorBody = await scrapeResponse.json().catch(() => ({ message: "Scraping failed with no details."}));
-      throwEnhancedError(errorBody, 'Failed to scrape job URL.');
-  }
-  const { html } = await scrapeResponse.json();
-
-  if (!html) {
-      throw new Error('Scraped page is empty.');
-  }
-
-  const prompt = `Analyze the following HTML from a job posting. Extract the job title, company name, a detailed job description (combine responsibilities, qualifications, etc.), and a list of key skills mentioned.
-  HTML:
-  ---
-  ${html.substring(0, 15000)}
-  ---
-  Provide the output in a JSON object.`;
-
-  const responseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      title: { type: Type.STRING },
-      company: { type: Type.STRING },
-      description: { type: Type.STRING },
-      skills: { type: Type.ARRAY, items: { type: Type.STRING } },
-    },
-    required: ['title', 'company', 'description', 'skills'],
-  };
-
-  try {
-    const response = await callApi({
-      stream: false,
-      model: 'gemini-2.5-pro',
-      contents: [{ parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-      },
+    const prompt = `Extract job details from HTML: title, company, description, skills. JSON output.`;
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ parts: [{ text: prompt }, { text: html.substring(0, 20000) }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING },
+                    company: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    skills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ['title', 'company', 'description', 'skills'],
+            }
+        }
     });
-
-    const geminiResponse = await response.json();
-    const jsonText = geminiResponse.text.trim();
-    const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-    return JSON.parse(cleanJson);
-  } catch (error) {
-      throwEnhancedError(error, 'Failed to parse job details from page.');
-  }
+    return safeJsonParse(response.text || "{}", 'job scrape');
 }
 
 export async function syncLinkedInProfile(url: string): Promise<string> {
-    const scrapeResponse = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'scrape', url }),
+    const html = await callScrapeProxy(url);
+    if (!html) throw new Error("Profile content is empty");
+
+    const prompt = `Extract CV data from LinkedIn HTML. Format as Markdown CV.`;
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ parts: [{ text: prompt }, { text: html.substring(0, 25000) }] }]
     });
-
-    if (!scrapeResponse.ok) {
-        throw new Error('Failed to scrape LinkedIn profile.');
-    }
-    const { html } = await scrapeResponse.json();
-    if (!html) {
-        throw new Error('Scraped LinkedIn page is empty.');
-    }
-
-    const prompt = `
-    Analyze the provided HTML of a LinkedIn profile page and extract the user's professional information. 
-    Format the output as a clean, well-structured CV in Markdown format. 
-    Include the following sections if available:
-    - Name (as a main heading)
-    - Contact Information (if found, like email or website)
-    - Summary / About (as a paragraph)
-    - Experience (list each job with title, company, dates, and description/bullet points)
-    - Education (list each institution with degree and dates)
-    - Skills (as a comma-separated list or bullet points)
-    
-    Prioritize clarity and professional formatting. Omit any sections that are not found in the HTML.
-    
-    HTML to parse:
-    ---
-    ${html.substring(0, 25000)} 
-    ---
-    
-    Formatted CV:
-    `;
-    
-    return generateText(prompt);
+    return response.text || "";
 }
 
 export async function generateTailoredResume(jobDetails: JobDetails, cv: string): Promise<string> {
-    const prompt = `Given the following job details and a user's CV, tailor the CV to better match the job description. Focus on highlighting relevant skills and experiences. Maintain a professional tone and format. Output only the tailored resume text in Markdown format.
-    
-    Job Title: ${jobDetails.title}
-    Company: ${jobDetails.company}
-    Job Description: ${jobDetails.description}
-    Key Skills Required: ${jobDetails.skills.join(', ')}
-
-    ---
-    User's Current CV:
-    ---
-    ${cv}
-    ---
-    
-    Tailored Resume:`;
-    
-    return generateText(prompt);
+    const prompt = `Tailor this CV for the job.\nJob: ${JSON.stringify(jobDetails)}\nCV: ${cv}`;
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }]
+    });
+    return response.text || "";
 }
 
 export async function generateCoverLetter(jobDetails: JobDetails, cv: string): Promise<string> {
-    const prompt = `Based on the following job details and user's CV, write a compelling and professional cover letter. The letter should express strong interest in the role, highlight the most relevant skills and experiences from the CV, and be tailored specifically to the company and job description. Output only the cover letter text in Markdown format.
-
-    Job Title: ${jobDetails.title}
-    Company: ${jobDetails.company}
-    Job Description: ${jobDetails.description}
-    Key Skills Required: ${jobDetails.skills.join(', ')}
-
-    ---
-    User's CV to reference:
-    ---
-    ${cv}
-    ---
-    
-    Cover Letter:`;
-    
-    return generateText(prompt);
-}
-
-export async function sendWhatsAppApproval(applicationId: string, phoneNumber: string): Promise<void> {
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'sendWhatsApp',
-            applicationId,
-            phoneNumber
-        }),
+    const prompt = `Write a cover letter for this job using the CV.\nJob: ${JSON.stringify(jobDetails)}\nCV: ${cv}`;
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }]
     });
-    if (!response.ok) {
-        throw new Error('Failed to send WhatsApp approval.');
-    }
+    return response.text || "";
 }
 
-export async function applyByEmail(applicationId: string, email: string): Promise<void> {
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'sendEmail',
-            applicationId,
-            email,
-        }),
+export async function chatWithJobCoach(history: ChatMessage[], application: JobApplication): Promise<string> {
+    const systemInstruction = `You are an AI Career Coach. 
+    Job: ${application.jobTitle} at ${application.company}.
+    Context: ${application.jobDescription.substring(0, 1000)}...
+    Resume Draft: ${application.tailoredResume.substring(0, 1000)}...`;
+
+    const contents = history.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents,
+        config: { systemInstruction }
     });
-    if (!response.ok) {
-        throw new Error('Failed to apply by email.');
-    }
+    return response.text || "";
 }
 
-
-export async function extractTextFromImage(file: FilePart): Promise<string> {
-    const model = 'gemini-2.5-flash';
-    const prompt = 'Extract all visible text from this document. Present the text exactly as it appears, preserving formatting and paragraphs as best as possible. Do not add any commentary or explanation.';
-
-    const parts: any[] = [
-        { text: prompt },
-        { inlineData: { mimeType: file.mimeType, data: file.data } }
-    ];
-
-    const contents = { parts };
-
-    try {
-        const response = await callApi({
-            stream: false,
-            model,
-            contents: [contents],
-        });
-        const geminiResponse = await response.json();
-        return geminiResponse.text;
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to extract text from file.');
-    }
-}
-
+// --- UTILS & PLACEHOLDERS ---
 
 export async function generateImage(prompt: string, aspectRatio: string): Promise<string> {
     try {
-        const response = await callApi({
+        const response = await ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: prompt,
-            config: {
-                numberOfImages: 1,
-                aspectRatio: aspectRatio,
-                outputMimeType: 'image/jpeg',
-            },
+            config: { numberOfImages: 1, aspectRatio: aspectRatio, outputMimeType: 'image/jpeg' },
         });
-        const geminiResponse = await response.json();
-        const base64Image = geminiResponse?.generatedImages?.[0]?.image?.imageBytes;
-        if (!base64Image) {
-            const errorReason = geminiResponse?.error?.message || "No image data found in API response.";
-            throw new Error(errorReason);
-        }
-        return base64Image;
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to generate image.');
+        return response.generatedImages?.[0]?.image?.imageBytes || "";
+    } catch (e) {
+        console.error("Image Gen Error:", e);
+        return "";
     }
 }
 
 export async function generateText(prompt: string): Promise<string> {
-    try {
-        const response = await callApi({
-            stream: false,
-            model: "gemini-2.5-flash",
-            contents: [{ parts: [{ text: prompt }] }],
-        });
-        const geminiResponse = await response.json();
-        return geminiResponse.text.trim();
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to generate text response.');
-    }
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }]
+    });
+    return response.text || "";
 }
 
 export async function generateJsonArray(prompt: string): Promise<string[]> {
-    try {
-        const responseSchema = {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-        };
-
-        const response = await callApi({
-            stream: false,
-            model: "gemini-2.5-flash",
-            contents: [{ parts: [{ text: prompt }] }],
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-            },
-        });
-
-        const geminiResponse = await response.json();
-        const jsonText = geminiResponse.text.trim();
-        const cleanJson = jsonText.replace(/^```json\s*|```$/g, '');
-        const result = JSON.parse(cleanJson);
-        
-        if (Array.isArray(result)) {
-            return result.filter((item): item is string => typeof item === 'string');
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
         }
-        throw new Error("AI did not return a valid JSON array of strings.");
-    } catch (error) {
-        throwEnhancedError(error, 'Failed to generate JSON array.');
-    }
+    });
+    return safeJsonParse(response.text || "[]", 'json array');
 }
+
+export async function checkApiHealth(): Promise<boolean> {
+    try {
+        await generateText("ping");
+        return true;
+    } catch { return false; }
+}
+
+// Placeholder functions for actions that would require a real backend integration
+export async function sendWhatsAppApproval(applicationId: string, phoneNumber: string): Promise<void> { await new Promise(r => setTimeout(r, 1000)); }
+export async function applyByEmail(applicationId: string, email: string): Promise<void> { await new Promise(r => setTimeout(r, 1000)); }

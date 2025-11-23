@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback } from 'react';
 import { produce } from 'immer';
 import { useDropzone } from 'react-dropzone';
@@ -7,6 +5,8 @@ import { AppState, useLanguage, FilePart } from '../types';
 import DocumentDisplay from './ReportDisplay';
 import CameraInput from './CameraInput';
 import { useAISuggestions, AISuggestionsDisplay } from './AISuggestions';
+
+const MAX_FILE_SIZE_MB = 10;
 
 // --- PROPS INTERFACE ---
 interface InsuranceServicesProps {
@@ -67,7 +67,20 @@ const PolicyAnalyzerTool: React.FC<Pick<InsuranceServicesProps, 'onAnalyzePolicy
     const [file, setFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
     const [useThinkingMode, setUseThinkingMode] = useState(false);
-    const onDrop = useCallback((accepted:File[], rejected:any[]) => { if(rejected.length) setFileError(t('contractAnalyzer.unsupportedFileType')); else { setFile(accepted[0]); setFileError(null); }},[t]);
+    const onDrop = useCallback((accepted:File[], rejected:any[]) => { 
+        setFileError(null);
+        if(rejected.length) {
+            setFileError(t('contractAnalyzer.unsupportedFileType')); 
+        } else { 
+            const droppedFile = accepted[0];
+            if (droppedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                setFileError(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit.`);
+                setFile(null);
+                return;
+            }
+            setFile(droppedFile); 
+        }
+    },[t]);
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: {'application/pdf':[], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':[], 'text/plain':[], 'image/jpeg':[], 'image/png':[]}, maxFiles: 1 });
     const handleCapture = (base64Data: string, mimeType: string) => { /* logic to create file from base64 */ };
     const handleSubmit = async (e: React.FormEvent) => {
@@ -160,7 +173,20 @@ const AutoClaimAssessorTool: React.FC<Pick<InsuranceServicesProps, 'onAutoClaimA
     const [file, setFile] = useState<File|null>(null);
     const [fileError, setFileError] = useState<string|null>(null);
     const [useThinkingMode, setUseThinkingMode] = useState(false);
-    const onDrop = useCallback((accepted:File[], rejected:any[]) => { if(rejected.length) setFileError(t('contractAnalyzer.unsupportedFileType')); else { setFile(accepted[0]); setFileError(null); }},[t]);
+    const onDrop = useCallback((accepted:File[], rejected:any[]) => { 
+        setFileError(null);
+        if(rejected.length) {
+            setFileError(t('contractAnalyzer.unsupportedFileType')); 
+        } else { 
+            const droppedFile = accepted[0];
+             if (droppedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                setFileError(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit.`);
+                setFile(null);
+                return;
+            }
+            setFile(droppedFile); 
+        }
+    },[t]);
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: {'image/jpeg':[], 'image/png':[], 'application/pdf': ['.pdf']}, maxFiles: 1 });
     const handleCapture = (base64Data: string, mimeType: string) => { /* logic to create file */ };
     const handleSubmit = async (e: React.FormEvent) => {

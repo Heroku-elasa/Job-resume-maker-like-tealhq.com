@@ -1,10 +1,11 @@
+
 import React from 'react';
 import GeneratorForm from './GeneratorForm';
 import DocumentDisplay from './ReportDisplay';
 import { useLanguage } from '../types';
 
 interface LegalDrafterProps {
-  onGenerate: (topic: string, description: string, docType: string) => void;
+  onGenerate: (topic: string, description: string, docType: string, useThinkingMode: boolean) => void;
   isLoading: boolean;
   isComplete: boolean;
   topic: string;

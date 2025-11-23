@@ -1,10 +1,12 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FilePart, useLanguage } from '../types';
 import DocumentDisplay from './ReportDisplay';
 import CameraInput from './CameraInput';
+import { extractTextFromDocument } from '../services/geminiService';
+
+const MAX_FILE_SIZE_MB = 10;
 
 interface ContractAnalyzerProps {
     onAnalyze: (content: { file?: FilePart; text?: string }, userQuery: string, useThinkingMode: boolean) => void;
@@ -39,9 +41,13 @@ const ContractAnalyzer: React.FC<ContractAnalyzerProps> = ({
     const [preview, setPreview] = useState<string | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
     const [useThinkingMode, setUseThinkingMode] = useState(false);
+    
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [extractError, setExtractError] = useState<string | null>(null);
 
     const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
         setFileError(null);
+        setExtractError(null);
         if (rejectedFiles.length > 0) {
             setFileError(t('contractAnalyzer.unsupportedFileType'));
             setFile(null);
@@ -50,6 +56,14 @@ const ContractAnalyzer: React.FC<ContractAnalyzerProps> = ({
         }
         if (acceptedFiles.length > 0) {
             const currentFile = acceptedFiles[0];
+            
+            if (currentFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                setFileError(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit.`);
+                setFile(null);
+                setPreview(null);
+                return;
+            }
+
             setFile(currentFile);
             if (currentFile.type.startsWith('image/')) {
                  const reader = new FileReader();
@@ -106,6 +120,23 @@ const ContractAnalyzer: React.FC<ContractAnalyzerProps> = ({
             alert('Please provide a contract to analyze.');
         }
     };
+
+    const handleExtractToEditor = async () => {
+        if (!file) return;
+        setIsExtracting(true);
+        setExtractError(null);
+        try {
+            const base64Data = await fileToBase64(file);
+            const filePart: FilePart = { mimeType: file.type, data: base64Data };
+            const extracted = await extractTextFromDocument(filePart);
+            setInitialText(extracted);
+            setActiveTab('text');
+        } catch (err) {
+            setExtractError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setIsExtracting(false);
+        }
+    };
     
     const handleUseExample = () => {
         const example = t('contractAnalyzer.example');
@@ -151,7 +182,13 @@ const ContractAnalyzer: React.FC<ContractAnalyzerProps> = ({
                                 <div className="space-y-4">
                                     <div {...getRootProps()} className={`p-6 border-2 border-dashed rounded-md cursor-pointer text-center ${isDragActive ? 'border-brand-gold bg-brand-blue/70' : 'border-brand-blue/70'}`}>
                                         <input {...getInputProps()} />
-                                        {preview ? (
+                                        {file && file.type === 'application/pdf' ? (
+                                            <div className="flex flex-col items-center justify-center p-2">
+                                                <svg className="w-12 h-12 text-red-500 mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"></path></svg>
+                                                <p className="text-white font-medium text-sm truncate max-w-xs">{file.name}</p>
+                                                <p className="text-gray-400 text-xs">PDF Document</p>
+                                            </div>
+                                        ) : preview ? (
                                             <img src={preview} alt="Preview" className="max-h-24 mx-auto rounded-md" />
                                         ) : (
                                             <p className="text-gray-400">{file ? file.name : t('contractAnalyzer.dropzoneText')}</p>
@@ -164,9 +201,25 @@ const ContractAnalyzer: React.FC<ContractAnalyzerProps> = ({
                                         <div className="flex-grow border-t border-brand-blue/50"></div>
                                     </div>
                                     <CameraInput onCapture={handleCapture} />
+                                    
+                                    {file && (
+                                        <div className="mt-2">
+                                             <button 
+                                                onClick={handleExtractToEditor} 
+                                                disabled={isExtracting || isQuotaExhausted}
+                                                className="w-full flex items-center justify-center px-4 py-2 border border-brand-gold/50 rounded-md text-sm font-medium text-brand-gold hover:bg-brand-gold/10 transition-colors disabled:opacity-50"
+                                            >
+                                                {isExtracting ? (
+                                                    <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-brand-gold" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    Extracting Text...</>
+                                                ) : "Extract Text to Editor (OCR)"}
+                                            </button>
+                                            {extractError && <p className="mt-2 text-sm text-red-400 text-center">{extractError}</p>}
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
-                                <textarea rows={8} value={initialText} onChange={(e) => setInitialText(e.target.value)} className="w-full bg-brand-blue/50 border-brand-blue/70 rounded-md py-2 px-3 text-white" placeholder='Paste contract text here...' />
+                                <textarea rows={12} value={initialText} onChange={(e) => setInitialText(e.target.value)} className="w-full bg-brand-blue/50 border-brand-blue/70 rounded-md py-2 px-3 text-white focus:ring-brand-gold focus:border-brand-gold" placeholder='Paste contract text here...' />
                             )}
                         </div>
 
@@ -181,7 +234,7 @@ const ContractAnalyzer: React.FC<ContractAnalyzerProps> = ({
                                 rows={3}
                                 value={userQuery}
                                 onChange={(e) => setUserQuery(e.target.value)}
-                                className="mt-1 w-full bg-brand-blue/50 border-brand-blue/70 rounded-md py-2 px-3 text-white"
+                                className="mt-1 w-full bg-brand-blue/50 border-brand-blue/70 rounded-md py-2 px-3 text-white focus:ring-brand-gold focus:border-brand-gold"
                                 placeholder={t('contractAnalyzer.userQueryPlaceholder')}
                             />
                         </div>

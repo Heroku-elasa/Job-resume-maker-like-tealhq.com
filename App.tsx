@@ -25,7 +25,7 @@ import QuotaErrorModal from './components/QuotaErrorModal';
 import Chatbot from './components/Chatbot';
 
 // Type and Service Imports
-import { AppState, Checkpoint, PageKey, SaveStatus, useLanguage, Lawyer, Notary, LatLng, StrategyTask, IntentRoute, FilePart, DraftPreparationResult, AutoSaveData, JobApplication, JobDetails, ResumeAnalysisItem, ChatMessage } from './types';
+import { AppState, Checkpoint, PageKey, SaveStatus, useLanguage, Lawyer, Notary, LatLng, StrategyTask, IntentRoute, FilePart, DraftPreparationResult, AutoSaveData, JobApplication, JobDetails, ResumeAnalysisItem, ChatMessage, ResumeAnalysisResult } from './types';
 import * as geminiService from './services/geminiService';
 import * as dbService from './services/dbService';
 import { REPORT_TYPES, RESUME_ANALYSIS_CRITERIA } from './constants';
@@ -33,8 +33,105 @@ import { REPORT_TYPES, RESUME_ANALYSIS_CRITERIA } from './constants';
 const LOCAL_STORAGE_KEY = 'dadgar-ai-autosave';
 const CHECKPOINTS_STORAGE_KEY = 'dadgar-ai-checkpoints';
 
+const sampleResume = `Here’s a comprehensive guide on finding and using an AI-powered resume checker in Python.
+
+## GitHub Projects
+
+There are several repositories available that provide resume parsing and AI evaluation features:
+
+1. **ResumAI**
+   - **GitHub:** https://github.com/psssumon/resumAI
+   - **Description:** AI-based resume scorer, matches candidate resumes against job descriptions, extracts skills, and ranks resumes automatically.
+   - **Features:**
+     - Resume parsing with NLP
+     - Job matching and scoring
+     - Visualization dashboard
+
+2. **pyresparser**
+   - **GitHub:** https://github.com/OmkarPathak/pyresparser
+   - **Description:** Python library for resume parsing.
+   - **Features:**
+     - Extracts contact info, skills, education, and experience
+     - Works with \`.pdf\` and \`.docx\` resumes
+     - Can be combined with AI scoring models
+
+3. **ResumeParser**
+   - **GitHub:** https://github.com/OmkarPathak/ResumeParser
+   - **Description:** Another Python project focusing on resume parsing and basic extraction for HR automation.
+
+## Python Modules
+
+To build or enhance an AI resume checker, you can combine the following Python modules:
+
+1. **\`pyresparser\`**
+
+   \`\`\`bash
+   pip install pyresparser
+   \`\`\`
+
+   - Extracts personal information, education, skills, and experience.
+
+2. **\`spacy\`**
+
+   \`\`\`bash
+   pip install spacy
+   python -m spacy download en_core_web_sm
+   \`\`\`
+
+   - Natural Language Processing (NLP) engine for analyzing text content of resumes.
+
+3. **\`fuzzywuzzy\` / \`rapidfuzz\`**
+
+   \`\`\`bash
+   pip install rapidfuzz
+   \`\`\`
+
+   - For matching skills and experience against a job description.
+
+4. **\`transformers\` (Hugging Face)**
+
+   \`\`\`bash
+   pip install transformers
+   \`\`\`
+
+   - You can use pre-trained models (like BERT or GPT embeddings) to semantically match resumes with job descriptions.
+
+## Sample Usage With Pyresparser
+
+\`\`\`python
+# Import necessary libraries
+from pyresparser import ResumeParser
+
+# Parse the resume
+data = ResumeParser('resume.pdf').get_extracted_data()
+
+# Display parsed information
+print("Name:", data['name'])
+print("Email:", data['email'])
+print("Skills:", data['skills'])
+print("Education:", data['education'])
+\`\`\`
+
+For enhanced AI scoring:
+1. Combine resume skills with job description skills using \`rapidfuzz\`.
+2. Use \`transformers\` embeddings to calculate semantic similarity between resume text and job description.
+
+## Summary
+
+- GitHub Projects: **ResumAI**, **pyresparser**, **ResumeParser**
+- Python Modules: **pyresparser**, **spacy**, **rapidfuzz**, **transformers**
+- You can parse resumes, extract key data, and implement AI-based scoring or matching.
+
+This setup allows you to either use existing tools directly or build a custom AI resume checker tailored to your own hiring criteria.
+
+Source(s):
+[^1^]: https://github.com/priyanshu9896/AI-Resume-Checker
+[^2^]: https://github.com/harishhari131506/AI-Powered-Resume-Based-Content-Recommendation-System
+[^3^]: https://pypi.org/project/lib-resume-builder-AIHawk/
+[^4^]: https://brollyacademy.com/python-ai-projects/`;
+
 const initialState: AppState = {
-  page: 'home',
+  page: 'resume_analyzer',
   document: '',
   form: {
     topic: '',
@@ -115,8 +212,8 @@ const initialState: AppState = {
   insurance_lifeNeedsResult: '',
   jobAssistant_applications: [],
   jobAssistant_currentUserCv: '',
-  resumeAnalyzer_resumeText: '',
-  resumeAnalyzer_analysisResult: [],
+  resumeAnalyzer_resumeText: sampleResume,
+  resumeAnalyzer_analysisResult: null,
   resumeAnalyzer_chatHistory: [],
 };
 
@@ -131,11 +228,13 @@ const App: React.FC = () => {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [isAIGuideOpen, setIsAIGuideOpen] = useState(false);
   const [isExecutingTask, setIsExecutingTask] = useState(false);
+  const [isApiHealthy, setIsApiHealthy] = useState<boolean | null>(null);
   
   const preparedSearchQueryRef = useRef<{ for: 'lawyer_finder' | 'notary_finder' | null; query: string }>({ for: null, query: '' });
   const [preparedSearchQuery, setPreparedSearchQuery] = useState(preparedSearchQueryRef.current);
 
   const saveTimeout = useRef<number | null>(null);
+  const analysisTriggered = useRef(false);
   
   useEffect(() => {
     // Set document direction based on language
@@ -160,6 +259,8 @@ const App: React.FC = () => {
 
   // --- Data Persistence ---
   useEffect(() => {
+    geminiService.checkApiHealth().then(setIsApiHealthy);
+
     dbService.initDB().then(() => {
       dbService.getAllLawyers().then(allLawyers => {
         setState(produce(draft => { draft.allLawyers = allLawyers }));
@@ -174,8 +275,10 @@ const App: React.FC = () => {
     if (savedData) {
       try {
         const parsedData: AutoSaveData = JSON.parse(savedData);
+        // Don't overwrite the initial sample resume state
+        const { resumeAnalyzer_resumeText, ...restOfParsedData } = parsedData;
         setState(produce(draft => {
-          Object.assign(draft, parsedData);
+          Object.assign(draft, restOfParsedData);
         }));
       } catch (e) {
         console.error("Failed to parse autosave data:", e);
@@ -185,6 +288,45 @@ const App: React.FC = () => {
       setCheckpoints(JSON.parse(savedCheckpoints));
     }
   }, []);
+  
+  // FIX: Moved handleAnalyzeResume before the useEffect that calls it to fix block-scoped variable error.
+  const handleAnalyzeResume = useCallback(async (resumeText: string) => {
+    setIsLoading(true);
+    setIsApiError(null);
+    setState(produce(draft => {
+      draft.resumeAnalyzer_resumeText = resumeText;
+      draft.resumeAnalyzer_analysisResult = null;
+      draft.resumeAnalyzer_chatHistory = [];
+    }));
+    try {
+      const criteria = RESUME_ANALYSIS_CRITERIA.map(c => ({
+          id: c.id,
+          category: language === 'fa' ? c.category.fa : c.category.en,
+          requirement: language === 'fa' ? c.requirement.fa : c.requirement.en
+      }));
+      const result = await geminiService.analyzeResume(resumeText, criteria);
+      setState(produce(draft => { 
+        draft.resumeAnalyzer_analysisResult = result;
+        const initialBotMessage: ChatMessage = { role: 'model', text: t('resumeAnalyzer.chat.initialMessage') };
+        draft.resumeAnalyzer_chatHistory.push(initialBotMessage);
+      }));
+    } catch (err) {
+      const msg = handleApiError(err);
+      setIsApiError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [language, t, handleApiError]);
+
+  // Auto-trigger resume analysis on first load for demo
+  useEffect(() => {
+    if (analysisTriggered.current) return;
+
+    if (state.page === 'resume_analyzer' && state.resumeAnalyzer_resumeText && !state.resumeAnalyzer_analysisResult && !isLoading) {
+      analysisTriggered.current = true;
+      handleAnalyzeResume(state.resumeAnalyzer_resumeText);
+    }
+  }, [state.page, state.resumeAnalyzer_resumeText, state.resumeAnalyzer_analysisResult, isLoading, handleAnalyzeResume]);
 
   const triggerSave = useCallback(() => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -207,8 +349,11 @@ const App: React.FC = () => {
         imageGenPrompt: state.imageGenPrompt,
         imageGenAspectRatio: state.imageGenAspectRatio,
         corporateServices_nameQuery: state.corporateServices_nameQuery,
+        corporateServices_generatedNames: state.corporateServices_generatedNames,
         corporateServices_articlesQuery: state.corporateServices_articlesQuery,
+        corporateServices_generatedArticles: state.corporateServices_generatedArticles,
         corporateServices_complianceQuery: state.corporateServices_complianceQuery,
+        corporateServices_complianceAnswer: state.corporateServices_complianceAnswer,
         insurance_policyQuery: state.insurance_policyQuery,
         insurance_initialPolicyText: state.insurance_initialPolicyText,
         insurance_claimQuery: state.insurance_claimQuery,
@@ -245,7 +390,7 @@ const App: React.FC = () => {
   };
   
   // --- API Handlers ---
-  const handleGenerateReport = async (topic: string, description: string, docType: string) => {
+  const handleGenerateReport = async (topic: string, description: string, docType: string, useThinkingMode: boolean) => {
     setIsLoading(true);
     setIsApiError(null);
     setState(produce(draft => {
@@ -255,40 +400,12 @@ const App: React.FC = () => {
 
     const prompt = t(`reportPrompts.${docType}`).replace('{topic}', topic).replace('{description}', description);
     try {
-      const generator = geminiService.generateReportStream(prompt);
+      const generator = geminiService.generateReportStream(prompt, useThinkingMode);
       let fullReport = '';
       for await (const chunk of generator) {
         fullReport += chunk;
         setState(produce(draft => { draft.document = fullReport; }));
       }
-    } catch (err) {
-      const msg = handleApiError(err);
-      setIsApiError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleAnalyzeResume = async (resumeText: string) => {
-    setIsLoading(true);
-    setIsApiError(null);
-    setState(produce(draft => {
-      draft.resumeAnalyzer_resumeText = resumeText;
-      draft.resumeAnalyzer_analysisResult = [];
-      draft.resumeAnalyzer_chatHistory = [];
-    }));
-    try {
-      const criteria = RESUME_ANALYSIS_CRITERIA.map(c => ({
-          id: c.id,
-          category: language === 'fa' ? c.category.fa : c.category.en,
-          requirement: language === 'fa' ? c.requirement.fa : c.requirement.en
-      }));
-      const result = await geminiService.analyzeResume(resumeText, criteria);
-      setState(produce(draft => { 
-        draft.resumeAnalyzer_analysisResult = result;
-        const initialBotMessage: ChatMessage = { role: 'model', text: t('resumeAnalyzer.chat.initialMessage') };
-        draft.resumeAnalyzer_chatHistory.push(initialBotMessage);
-      }));
     } catch (err) {
       const msg = handleApiError(err);
       setIsApiError(msg);
@@ -308,15 +425,17 @@ const App: React.FC = () => {
     setIsApiError(null);
 
     try {
-        const missingItems = state.resumeAnalyzer_analysisResult.filter(item => item.status === 'missing' || item.status === 'implicit');
+        const missingItems = state.resumeAnalyzer_analysisResult
+          ? state.resumeAnalyzer_analysisResult.analysis.filter(item => item.status === 'missing' || item.status === 'implicit')
+          : [];
         const { reply, updatedItem } = await geminiService.continueResumeChat(currentHistory, missingItems);
         
         setState(produce(draft => {
             draft.resumeAnalyzer_chatHistory.push({ role: 'model', text: reply });
-            if (updatedItem) {
-                const index = draft.resumeAnalyzer_analysisResult.findIndex(item => item.id === updatedItem.id);
+            if (updatedItem && draft.resumeAnalyzer_analysisResult) {
+                const index = draft.resumeAnalyzer_analysisResult.analysis.findIndex(item => item.id === updatedItem.id);
                 if (index !== -1) {
-                    draft.resumeAnalyzer_analysisResult[index] = updatedItem;
+                    draft.resumeAnalyzer_analysisResult.analysis[index] = updatedItem;
                 }
             }
         }));
@@ -841,6 +960,9 @@ const App: React.FC = () => {
             complianceQuery={state.corporateServices_complianceQuery}
             setComplianceQuery={(v) => setSingleState('corporateServices_complianceQuery', v)}
             complianceAnswer={state.corporateServices_complianceAnswer}
+            setGeneratedArticles={(v) => setSingleState('corporateServices_generatedArticles', v)}
+            setGeneratedNames={(v) => setSingleState('corporateServices_generatedNames', v)}
+            setComplianceAnswer={(v) => setSingleState('corporateServices_complianceAnswer', v)}
         /></ToolWrapper>;
       case 'insurance_services':
         return <ToolWrapper><InsuranceServices
@@ -892,7 +1014,8 @@ const App: React.FC = () => {
     <div className={`min-h-screen flex flex-col text-teal-dark`}>
       <SiteHeader 
         currentPage={state.page} 
-        setPage={setPage} 
+        setPage={setPage}
+        isApiHealthy={isApiHealthy}
       />
       <div className="flex-grow">
         {renderPage()}

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, createContext, useContext } from 'react';
 import { en, fa } from './constants';
 
@@ -84,8 +85,8 @@ export interface GroundingChunk {
     title: string; 
   };
   maps?: {
-    uri: string;
-    title: string;
+    uri: string; 
+    title: string; 
   };
 }
 
@@ -132,6 +133,7 @@ export interface JobApplication {
     lastUpdated: number;
     appliedDate?: number;
     notes?: string;
+    chatHistory?: ChatMessage[];
 }
 
 // --- NEW RESUME ANALYZER TYPES ---
@@ -143,6 +145,13 @@ export interface ResumeAnalysisItem {
   requirement: string;
   status: ResumeAnalysisStatus;
   evidence: string;
+}
+
+export interface ResumeAnalysisResult {
+  overallScore: number;
+  predictedJobTitle: string;
+  summaryAndRecommendations: string;
+  analysis: ResumeAnalysisItem[];
 }
 
 
@@ -165,13 +174,16 @@ export interface AutoSaveData {
   imageGenPrompt: string;
   imageGenAspectRatio: string;
   corporateServices_nameQuery: string;
+  corporateServices_generatedNames: string[];
   corporateServices_articlesQuery: {
     name: string;
     type: string;
     activity: string;
     capital: string;
   };
+  corporateServices_generatedArticles: string;
   corporateServices_complianceQuery: string;
+  corporateServices_complianceAnswer: string;
   insurance_policyQuery: string;
   insurance_initialPolicyText: string;
   insurance_claimQuery: {
@@ -290,7 +302,7 @@ export interface AppState {
   jobAssistant_currentUserCv: string;
   // Resume Analyzer
   resumeAnalyzer_resumeText: string;
-  resumeAnalyzer_analysisResult: ResumeAnalysisItem[];
+  resumeAnalyzer_analysisResult: ResumeAnalysisResult | null;
   resumeAnalyzer_chatHistory: ChatMessage[];
 }
 export interface Checkpoint {

@@ -4,9 +4,44 @@ import { PageKey, useLanguage } from '../types';
 interface SiteHeaderProps {
     currentPage: string;
     setPage: (page: 'home' | PageKey) => void;
+    isApiHealthy: boolean | null;
 }
 
-const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage }) => {
+const HealthIndicator: React.FC<{ status: boolean | null }> = ({ status }) => {
+    const { t } = useLanguage();
+    const getStatusInfo = () => {
+        if (status === null) {
+            return {
+                color: 'bg-gray-400 animate-pulse',
+                title: t('header.healthStatus.checking')
+            };
+        }
+        if (status) {
+            return {
+                color: 'bg-green-500',
+                title: t('header.healthStatus.ok')
+            };
+        }
+        return {
+            color: 'bg-red-500',
+            title: t('header.healthStatus.error')
+        };
+    };
+
+    const { color, title } = getStatusInfo();
+
+    return (
+        <div className="relative group">
+            <span className={`block w-3 h-3 ${color} rounded-full`}></span>
+            <div className="absolute bottom-full mb-2 w-max bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                {title}
+            </div>
+        </div>
+    );
+};
+
+
+const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHealthy }) => {
   const { language, setLanguage, t } = useLanguage();
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const [isResourcesMenuOpen, setIsResourcesMenuOpen] = useState(false);
@@ -55,9 +90,12 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage }) => {
         <div className="flex items-center justify-between h-20">
           {/* Logo and Main Nav */}
           <div className="flex items-center">
-            <button onClick={() => handlePageChange('home')} className="flex-shrink-0 text-2xl font-bold text-teal-green">
-              Kar-Yab AI
-            </button>
+             <div className="flex items-center space-x-3 rtl:space-x-reverse">
+                <button onClick={() => handlePageChange('home')} className="flex-shrink-0 text-2xl font-bold text-teal-green">
+                  Kar-Yab AI
+                </button>
+                <HealthIndicator status={isApiHealthy} />
+            </div>
             <nav className="hidden md:flex md:ml-10 md:space-x-8">
               <button onClick={() => handlePageChange('job_assistant')} className="text-gray-700 hover:text-teal-blue font-medium transition-colors">
                 {t('header.resumeBuilder')}

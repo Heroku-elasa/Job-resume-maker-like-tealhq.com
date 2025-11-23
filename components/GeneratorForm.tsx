@@ -1,12 +1,13 @@
+
 import React, { useState } from 'react';
 import { REPORT_TYPES } from '../constants';
 import { FilePart, useLanguage } from '../types';
 import { useAISuggestions, AISuggestionsDisplay } from './AISuggestions';
 import CameraInput from './CameraInput';
-import { extractTextFromImage } from '../services/geminiService';
+import { extractTextFromDocument } from '../services/geminiService';
 
 interface DraftingFormProps {
-  onGenerate: (topic: string, description: string, docType: string) => void;
+  onGenerate: (topic: string, description: string, docType: string, useThinkingMode: boolean) => void;
   isLoading: boolean;
   isComplete: boolean;
   topic: string;
@@ -35,6 +36,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
   const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const [isExtractingText, setIsExtractingText] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [useThinkingMode, setUseThinkingMode] = useState(false);
 
   const { suggestions: topicSuggestions, isLoading: isTopicSuggestionsLoading, setSuggestions: setTopicSuggestions } = useAISuggestions(
     topic,
@@ -66,7 +68,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
       alert(t('generatorForm.validationError'));
       return;
     }
-    onGenerate(topic, description, docType);
+    onGenerate(topic, description, docType, useThinkingMode);
   };
 
   const handleUseExample = () => {
@@ -84,7 +86,7 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
     setExtractionError(null);
     try {
         const filePart: FilePart = { data: base64Data, mimeType };
-        const extractedText = await extractTextFromImage(filePart);
+        const extractedText = await extractTextFromDocument(filePart);
         setDescription(prev => (prev ? `${prev.trim()}\n\n--- ${t('camera.captureSectionTitle')} ---\n` : '') + extractedText);
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -94,6 +96,26 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
     }
   };
 
+  const ThinkingModeToggle = () => (
+      <div className="flex items-center justify-between mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div>
+          <label htmlFor="thinking-mode-toggle-form" className="font-semibold text-gray-700 text-sm">
+            {t('thinkingMode.label')}
+          </label>
+          <p className="text-xs text-gray-500 mt-0.5">{t('thinkingMode.description')}</p>
+        </div>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            id="thinking-mode-toggle-form"
+            checked={useThinkingMode}
+            onChange={(e) => setUseThinkingMode(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-teal-blue peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-blue"></div>
+        </label>
+      </div>
+  );
 
   return (
     <div className="bg-white rounded-lg p-8 shadow-lg border border-gray-200">
@@ -188,6 +210,9 @@ const DraftingForm: React.FC<DraftingFormProps> = ({
               )}
           </div>
         </div>
+        
+        <ThinkingModeToggle />
+
         <div>
           <button
             type="submit"

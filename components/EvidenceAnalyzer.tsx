@@ -1,11 +1,12 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FilePart, useLanguage } from '../types';
 import DocumentDisplay from './ReportDisplay';
 import CameraInput from './CameraInput';
-import { extractTextFromImage } from '../services/geminiService';
+import { extractTextFromDocument } from '../services/geminiService';
+
+const MAX_FILE_SIZE_MB = 10;
 
 interface EvidenceAnalyzerProps {
     onAnalyze: (content: { file: FilePart }, userQuery: string, useThinkingMode: boolean) => void;
@@ -56,6 +57,14 @@ const EvidenceAnalyzer: React.FC<EvidenceAnalyzerProps> = ({
         }
         if (acceptedFiles.length > 0) {
             const currentFile = acceptedFiles[0];
+
+            if (currentFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                setFileError(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit.`);
+                setFile(null);
+                setPreview(null);
+                return;
+            }
+
             setFile(currentFile);
 
             if (currentFile.type.startsWith('image/')) {
@@ -126,7 +135,7 @@ const EvidenceAnalyzer: React.FC<EvidenceAnalyzerProps> = ({
         try {
             const base64Data = await fileToBase64(file);
             const filePart: FilePart = { mimeType: file.type, data: base64Data };
-            const text = await extractTextFromImage(filePart);
+            const text = await extractTextFromDocument(filePart);
             setExtractedText(text);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
@@ -173,7 +182,13 @@ const EvidenceAnalyzer: React.FC<EvidenceAnalyzerProps> = ({
                         <div className="space-y-4">
                             <div {...getRootProps()} className={`p-6 border-2 border-dashed rounded-md cursor-pointer text-center ${isDragActive ? 'border-brand-gold bg-brand-blue/70' : 'border-brand-blue/70'}`}>
                                 <input {...getInputProps()} />
-                                {preview ? (
+                                {file && file.type === 'application/pdf' ? (
+                                    <div className="flex flex-col items-center justify-center p-2">
+                                        <svg className="w-12 h-12 text-red-500 mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"></path></svg>
+                                        <p className="text-white font-medium text-sm truncate max-w-xs">{file.name}</p>
+                                        <p className="text-gray-400 text-xs">PDF Document</p>
+                                    </div>
+                                ) : preview ? (
                                     <img src={preview} alt="Preview" className="max-h-24 mx-auto rounded-md" />
                                 ) : (
                                     <p className="text-gray-400">{file ? file.name : t('evidenceAnalyzer.dropzoneText')}</p>
