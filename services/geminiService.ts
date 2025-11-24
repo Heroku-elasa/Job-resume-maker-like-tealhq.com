@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication } from '../types';
 
@@ -42,6 +43,10 @@ async function callScrapeProxy(url: string): Promise<string> {
         });
 
         if (!response.ok) {
+            // If proxy fails (likely 500 or 403 for LinkedIn), throw specific error
+            if (url.includes('linkedin.com')) {
+                throw new Error("LinkedIn Scraping Blocked");
+            }
             const error = await response.json().catch(() => ({}));
             throw new Error(error.message || `Scraping failed: ${response.status}`);
         }
@@ -450,7 +455,7 @@ export async function generateImprovedResume(
     return response.text || "";
 }
 
-// --- SCRAPING (VIA PROXY) & JOB GEN ---
+// --- SCRAPING (VIA PROXY & MOCK) ---
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
     const html = await callScrapeProxy(url);
@@ -477,16 +482,93 @@ export async function scrapeJobDetails(url: string): Promise<JobDetails> {
     return safeJsonParse(response.text || "{}", 'job scrape');
 }
 
-export async function syncLinkedInProfile(url: string): Promise<string> {
-    const html = await callScrapeProxy(url);
-    if (!html) throw new Error("Profile content is empty");
+const MOCK_PROFILE_DEV = `
+# Ali Rezaei
+Software Engineer | React | Node.js
 
-    const prompt = `Extract CV data from LinkedIn HTML. Format as Markdown CV.`;
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ parts: [{ text: prompt }, { text: html.substring(0, 25000) }] }]
-    });
-    return response.text || "";
+## Summary
+Experienced Full Stack Developer with 5 years of experience building scalable web applications. Passionate about AI and clean code.
+
+## Experience
+**Senior Developer @ TechCorp**
+*2021 - Present*
+- Led migration to React 18.
+- Improved performance by 40%.
+
+**Junior Developer @ StartupInc**
+*2019 - 2021*
+- Built REST APIs using Express.
+- Managed PostgreSQL database.
+
+## Education
+**B.S. Computer Science**
+*University of Tehran, 2015-2019*
+
+## Skills
+- JavaScript, TypeScript, React, Next.js
+- Node.js, Python, SQL
+- Git, Docker, AWS
+`;
+
+const MOCK_PROFILE_PM = `
+# Sara Mohammadi
+Product Manager | Fintech | Agile
+
+## Summary
+Strategic Product Manager with 7 years of experience launching successful mobile apps. 
+
+## Experience
+**Product Manager @ FinTech Pay**
+*2020 - Present*
+- Launched mobile wallet app reaching 1M users.
+- Increased user retention by 25% through data-driven features.
+
+**Associate PM @ ShopOnline**
+*2017 - 2020*
+- Managed backlog for e-commerce platform.
+- Conducted A/B testing to optimize checkout flow.
+
+## Education
+**MBA**
+*Sharif University of Technology, 2015-2017*
+
+## Skills
+- Product Strategy, Roadmapping
+- Agile/Scrum, JIRA
+- User Research, Data Analysis
+`;
+
+export async function syncLinkedInProfile(url: string): Promise<string> {
+    // 1. Check for specific Demo URLs to return high-quality mocks
+    if (url.includes('demo-software-engineer')) return MOCK_PROFILE_DEV;
+    if (url.includes('demo-product-manager')) return MOCK_PROFILE_PM;
+
+    // 2. Try Proxy (likely to fail for real LinkedIn due to anti-bot)
+    try {
+        const html = await callScrapeProxy(url);
+        if (!html) throw new Error("Profile content is empty");
+
+        const prompt = `Extract CV data from LinkedIn HTML. Format as Markdown CV.`;
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: prompt }, { text: html.substring(0, 25000) }] }]
+        });
+        return response.text || "";
+
+    } catch (e: any) {
+        // 3. Fail gracefully with educational content about scraping restrictions
+        console.warn("LinkedIn Scraping failed. Returning educational error.");
+        
+        throw new Error(
+            `LinkedIn Scraping Failed (Restricted).\n\n` +
+            `Direct scraping of LinkedIn profiles is blocked by their Terms of Service. ` +
+            `Automated tools (like 'linkedin-scraper' on GitHub) require Selenium/Python and cannot run in the browser.\n\n` +
+            `**Recommended Solution:**\n` +
+            `1. Go to your LinkedIn Profile.\n` +
+            `2. Click 'More' > 'Save to PDF'.\n` +
+            `3. Upload the PDF file here instead.`
+        );
+    }
 }
 
 export async function generateTailoredResume(jobDetails: JobDetails, cv: string): Promise<string> {

@@ -33,103 +33,6 @@ import { REPORT_TYPES, RESUME_ANALYSIS_CRITERIA } from './constants';
 const LOCAL_STORAGE_KEY = 'dadgar-ai-autosave';
 const CHECKPOINTS_STORAGE_KEY = 'dadgar-ai-checkpoints';
 
-const sampleResume = `Here’s a comprehensive guide on finding and using an AI-powered resume checker in Python.
-
-## GitHub Projects
-
-There are several repositories available that provide resume parsing and AI evaluation features:
-
-1. **ResumAI**
-   - **GitHub:** https://github.com/psssumon/resumAI
-   - **Description:** AI-based resume scorer, matches candidate resumes against job descriptions, extracts skills, and ranks resumes automatically.
-   - **Features:**
-     - Resume parsing with NLP
-     - Job matching and scoring
-     - Visualization dashboard
-
-2. **pyresparser**
-   - **GitHub:** https://github.com/OmkarPathak/pyresparser
-   - **Description:** Python library for resume parsing.
-   - **Features:**
-     - Extracts contact info, skills, education, and experience
-     - Works with \`.pdf\` and \`.docx\` resumes
-     - Can be combined with AI scoring models
-
-3. **ResumeParser**
-   - **GitHub:** https://github.com/OmkarPathak/ResumeParser
-   - **Description:** Another Python project focusing on resume parsing and basic extraction for HR automation.
-
-## Python Modules
-
-To build or enhance an AI resume checker, you can combine the following Python modules:
-
-1. **\`pyresparser\`**
-
-   \`\`\`bash
-   pip install pyresparser
-   \`\`\`
-
-   - Extracts personal information, education, skills, and experience.
-
-2. **\`spacy\`**
-
-   \`\`\`bash
-   pip install spacy
-   python -m spacy download en_core_web_sm
-   \`\`\`
-
-   - Natural Language Processing (NLP) engine for analyzing text content of resumes.
-
-3. **\`fuzzywuzzy\` / \`rapidfuzz\`**
-
-   \`\`\`bash
-   pip install rapidfuzz
-   \`\`\`
-
-   - For matching skills and experience against a job description.
-
-4. **\`transformers\` (Hugging Face)**
-
-   \`\`\`bash
-   pip install transformers
-   \`\`\`
-
-   - You can use pre-trained models (like BERT or GPT embeddings) to semantically match resumes with job descriptions.
-
-## Sample Usage With Pyresparser
-
-\`\`\`python
-# Import necessary libraries
-from pyresparser import ResumeParser
-
-# Parse the resume
-data = ResumeParser('resume.pdf').get_extracted_data()
-
-# Display parsed information
-print("Name:", data['name'])
-print("Email:", data['email'])
-print("Skills:", data['skills'])
-print("Education:", data['education'])
-\`\`\`
-
-For enhanced AI scoring:
-1. Combine resume skills with job description skills using \`rapidfuzz\`.
-2. Use \`transformers\` embeddings to calculate semantic similarity between resume text and job description.
-
-## Summary
-
-- GitHub Projects: **ResumAI**, **pyresparser**, **ResumeParser**
-- Python Modules: **pyresparser**, **spacy**, **rapidfuzz**, **transformers**
-- You can parse resumes, extract key data, and implement AI-based scoring or matching.
-
-This setup allows you to either use existing tools directly or build a custom AI resume checker tailored to your own hiring criteria.
-
-Source(s):
-[^1^]: https://github.com/priyanshu9896/AI-Resume-Checker
-[^2^]: https://github.com/harishhari131506/AI-Powered-Resume-Based-Content-Recommendation-System
-[^3^]: https://pypi.org/project/lib-resume-builder-AIHawk/
-[^4^]: https://brollyacademy.com/python-ai-projects/`;
-
 const initialState: AppState = {
   page: 'resume_analyzer',
   document: '',
@@ -212,7 +115,7 @@ const initialState: AppState = {
   insurance_lifeNeedsResult: '',
   jobAssistant_applications: [],
   jobAssistant_currentUserCv: '',
-  resumeAnalyzer_resumeText: sampleResume,
+  resumeAnalyzer_resumeText: '',
   resumeAnalyzer_analysisResult: null,
   resumeAnalyzer_chatHistory: [],
 };
@@ -234,7 +137,6 @@ const App: React.FC = () => {
   const [preparedSearchQuery, setPreparedSearchQuery] = useState(preparedSearchQueryRef.current);
 
   const saveTimeout = useRef<number | null>(null);
-  const analysisTriggered = useRef(false);
   
   useEffect(() => {
     // Set document direction based on language
@@ -275,10 +177,9 @@ const App: React.FC = () => {
     if (savedData) {
       try {
         const parsedData: AutoSaveData = JSON.parse(savedData);
-        // Don't overwrite the initial sample resume state
-        const { resumeAnalyzer_resumeText, ...restOfParsedData } = parsedData;
+        // Don't overwrite the initial state if empty
         setState(produce(draft => {
-          Object.assign(draft, restOfParsedData);
+          Object.assign(draft, parsedData);
         }));
       } catch (e) {
         console.error("Failed to parse autosave data:", e);
@@ -314,19 +215,9 @@ const App: React.FC = () => {
       const msg = handleApiError(err);
       setIsApiError(msg);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   }, [language, t, handleApiError]);
-
-  // Auto-trigger resume analysis on first load for demo
-  useEffect(() => {
-    if (analysisTriggered.current) return;
-
-    if (state.page === 'resume_analyzer' && state.resumeAnalyzer_resumeText && !state.resumeAnalyzer_analysisResult && !isLoading) {
-      analysisTriggered.current = true;
-      handleAnalyzeResume(state.resumeAnalyzer_resumeText);
-    }
-  }, [state.page, state.resumeAnalyzer_resumeText, state.resumeAnalyzer_analysisResult, isLoading, handleAnalyzeResume]);
 
   const triggerSave = useCallback(() => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);

@@ -610,6 +610,11 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                         )}
                     </button>
                 </div>
+                <div className="flex gap-2 mt-1 flex-wrap">
+                    <span className="text-xs text-gray-500 self-center">Try Demo:</span>
+                    <button onClick={() => setLinkedInUrl("https://linkedin.com/in/demo-software-engineer")} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 transition-colors">Software Engineer</button>
+                    <button onClick={() => setLinkedInUrl("https://linkedin.com/in/demo-product-manager")} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 transition-colors">Product Manager</button>
+                </div>
               </div>
             
              <div className="relative flex items-center"><div className="flex-grow border-t border-gray-300"></div><span className="mx-4 text-xs text-gray-500">OR</span><div className="flex-grow border-t border-gray-300"></div></div>
@@ -625,7 +630,12 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                 )}
             </div>
             
-            {error && activeTab === 'cv' && <div className="text-red-600 p-2 bg-red-100 rounded-md text-sm text-center">{error}</div>}
+            {error && activeTab === 'cv' && (
+                <div className="text-red-600 p-4 bg-red-100 rounded-md text-sm">
+                    <p className="font-bold mb-2">Error:</p>
+                    <div className="whitespace-pre-wrap">{error}</div>
+                </div>
+            )}
              
              <div className="relative">
                 <textarea 

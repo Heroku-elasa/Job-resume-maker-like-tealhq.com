@@ -11,6 +11,75 @@ import DocumentDisplay from './ReportDisplay';
 
 const MAX_FILE_SIZE_MB = 10;
 
+const DEMO_RESUME_DEV = `
+Ali Rezayi
+Software Engineer
+Tehran, Iran | +98 912 345 6789 | ali.rezayi@example.com
+
+SUMMARY
+Dedicated Software Engineer with 5+ years of experience designing and developing scalable web applications. Proficient in JavaScript, React, Node.js, and Python. Strong problem-solving skills and a passion for clean, maintainable code.
+
+EXPERIENCE
+Senior Frontend Developer | TechCorp, Tehran
+2021 – Present
+- Led a team of 5 developers in migrating a legacy monolith to a micro-frontend architecture using React and Webpack.
+- Improved application load time by 40% through code splitting and lazy loading.
+- Mentored junior developers and conducted code reviews to ensure best practices.
+
+Web Developer | WebSolutions Inc., Isfahan
+2018 – 2021
+- Developed responsive websites for diverse clients using HTML5, CSS3, and JavaScript.
+- Collaborated with designers to implement pixel-perfect UIs.
+- Integrated RESTful APIs and optimized database queries for better performance.
+
+EDUCATION
+Bachelor of Science in Computer Engineering
+Sharif University of Technology, Tehran
+2014 – 2018
+
+SKILLS
+- Languages: JavaScript (ES6+), TypeScript, Python, HTML, CSS
+- Frameworks: React, Next.js, Node.js, Express
+- Tools: Git, Docker, Webpack, Jira
+- Soft Skills: Team Leadership, Problem Solving, Communication
+`;
+
+const DEMO_RESUME_MANAGER = `
+Sara Mohammadi
+Product Manager
+Tehran, Iran | +98 912 987 6543 | sara.mohammadi@example.com
+
+SUMMARY
+Results-oriented Product Manager with 7 years of experience in the fintech and e-commerce sectors. Proven track record of launching successful products, driving user growth, and leading cross-functional teams. Adept at agile methodologies and data-driven decision-making.
+
+EXPERIENCE
+Product Manager | FinTech Pay, Tehran
+2020 – Present
+- Defined product roadmap and strategy for a new mobile payment wallet, achieving 1M+ downloads in the first year.
+- Conducted market research and user interviews to identify pain points and opportunities.
+- Collaborated with engineering, design, and marketing teams to ensure timely product delivery.
+
+Associate Product Manager | ShopOnline, Shiraz
+2017 – 2020
+- Managed the product backlog and prioritized features based on business value and customer feedback.
+- Analyzed key performance indicators (KPIs) to monitor product health and identify areas for improvement.
+- Facilitated sprint planning, daily stand-ups, and retrospectives.
+
+EDUCATION
+Master of Business Administration (MBA)
+University of Tehran
+2015 – 2017
+
+Bachelor of Science in Industrial Engineering
+Amirkabir University of Technology
+2011 – 2015
+
+SKILLS
+- Product Management: Roadmapping, User Stories, A/B Testing, Agile/Scrum
+- Tools: Jira, Trello, Google Analytics, Figma
+- Soft Skills: Strategic Thinking, Stakeholder Management, Leadership
+`;
+
 interface ResumeAnalyzerProps {
     resumeText: string;
     analysisResult: ResumeAnalysisResult | null;
@@ -494,6 +563,10 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                         ) : (
                             <textarea rows={8} value={resumeText} onChange={e => setResumeText(e.target.value)} className="w-full bg-gray-50 border-gray-300 rounded-md py-2 px-3 text-sm text-teal-dark focus:ring-teal-blue focus:border-teal-blue" placeholder={t('resumeAnalyzer.placeholder')} />
                         )}
+                        <div className="flex gap-2 mt-1">
+                            <button onClick={() => {setResumeText(DEMO_RESUME_DEV); setActiveTab('text');}} className="text-xs text-teal-600 hover:underline bg-teal-50 px-2 py-1 rounded border border-teal-100">Demo: Software Engineer</button>
+                            <button onClick={() => {setResumeText(DEMO_RESUME_MANAGER); setActiveTab('text');}} className="text-xs text-teal-600 hover:underline bg-teal-50 px-2 py-1 rounded border border-teal-100">Demo: Product Manager</button>
+                        </div>
                          <button 
                             onClick={handleAnalyzeClick} 
                             disabled={isParsing || isLoading || isQuotaExhausted || !resumeText.trim()} 
