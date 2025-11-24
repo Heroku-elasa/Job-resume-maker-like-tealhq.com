@@ -326,10 +326,17 @@ export async function extractTextFromDocument(file: FilePart): Promise<string> {
 
 // --- RESUME & JOB ASSISTANT ---
 
-export async function analyzeResume(resumeText: string, criteria: any[]): Promise<ResumeAnalysisResult> {
+export async function analyzeResume(resumeText: string, criteria: any[], language: 'en' | 'fa' = 'en'): Promise<ResumeAnalysisResult> {
+    const outputLang = language === 'fa' ? 'Persian (Farsi)' : 'English';
     const prompt = `Analyze this resume based on the criteria.
 Resume Text: ${resumeText.substring(0, 20000)}
 Criteria: ${JSON.stringify(criteria)}
+
+IMPORTANT:
+1. Evaluate 'status' as 'present', 'implicit', or 'missing'.
+2. Provide 'evidence', 'summaryAndRecommendations', and 'predictedJobTitle' strictly in ${outputLang}.
+3. Ensure the output is valid JSON.
+
 Output strictly JSON.`;
 
     const response = await ai.models.generateContent({
@@ -402,6 +409,38 @@ export async function continueResumeChat(history: ChatMessage[], itemsToClarify:
         }
     });
     return safeJsonParse(response.text || "{}", 'resume chat');
+}
+
+export async function generateImprovedResume(
+    originalResume: string,
+    analysis: ResumeAnalysisResult,
+    chatHistory: ChatMessage[],
+    language: 'en' | 'fa'
+): Promise<string> {
+    const outputLang = language === 'fa' ? 'Persian (Farsi)' : 'English';
+    const prompt = `You are an expert Professional Resume Writer.
+    
+    Your task is to rewrite the user's resume into a HIGHLY PROFESSIONAL, polished, and complete version.
+    
+    Inputs:
+    1. **Original Resume**: ${originalResume.substring(0, 15000)}
+    2. **Analysis Gaps**: ${analysis.summaryAndRecommendations}
+    3. **Interview Context**: ${JSON.stringify(chatHistory)} (The user may have provided missing details here).
+    
+    Instructions:
+    - Rewrite the resume in **${outputLang}**.
+    - Use professional Markdown formatting (Headers, Bullet points, Bold text).
+    - Incorporate any new information found in the Interview Context to fill the gaps.
+    - Structure it logically: Contact Info (placeholder if missing), Summary, Skills, Experience, Education, Projects.
+    - Improve the wording to be action-oriented and impactful.
+    
+    Output ONLY the Markdown text of the new resume.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }]
+    });
+    return response.text || "";
 }
 
 // --- SCRAPING (VIA PROXY) & JOB GEN ---

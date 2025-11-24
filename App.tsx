@@ -304,7 +304,7 @@ const App: React.FC = () => {
           category: language === 'fa' ? c.category.fa : c.category.en,
           requirement: language === 'fa' ? c.requirement.fa : c.requirement.en
       }));
-      const result = await geminiService.analyzeResume(resumeText, criteria);
+      const result = await geminiService.analyzeResume(resumeText, criteria, language);
       setState(produce(draft => { 
         draft.resumeAnalyzer_analysisResult = result;
         const initialBotMessage: ChatMessage = { role: 'model', text: t('resumeAnalyzer.chat.initialMessage') };

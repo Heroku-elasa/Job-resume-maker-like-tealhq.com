@@ -5,8 +5,9 @@ import mammoth from 'mammoth';
 import { marked } from 'marked';
 import { produce } from 'immer';
 import { ResumeAnalysisItem, ChatMessage, useLanguage, ResumeAnalysisStatus, FilePart, ResumeAnalysisResult } from '../types';
-import { extractTextFromDocument } from '../services/geminiService';
+import { extractTextFromDocument, generateImprovedResume } from '../services/geminiService';
 import { RESUME_ANALYSIS_CRITERIA } from '../constants';
+import DocumentDisplay from './ReportDisplay';
 
 const MAX_FILE_SIZE_MB = 10;
 
@@ -102,7 +103,7 @@ const AnalysisSummary: React.FC<{ result: ResumeAnalysisResult }> = ({ result })
         <div className="bg-gray-50 p-6 rounded-lg mb-6 border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-gray-200 pb-4 md:pb-0 md:pr-6">
-                    <p className="text-sm font-medium text-gray-600">Overall Score</p>
+                    <p className="text-sm font-medium text-gray-600">{t('resumeAnalyzer.overallScore')}</p>
                     <div className="relative w-32 h-32 mt-2">
                         <svg className="w-full h-full" viewBox="0 0 36 36">
                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" strokeWidth="2.5"></path>
@@ -120,7 +121,7 @@ const AnalysisSummary: React.FC<{ result: ResumeAnalysisResult }> = ({ result })
                     </div>
                 </div>
                 <div className="md:col-span-2">
-                    <p className="text-sm font-medium text-gray-600">Predicted Role</p>
+                    <p className="text-sm font-medium text-gray-600">{t('resumeAnalyzer.predictedRole')}</p>
                     <h4 className="text-2xl font-bold text-teal-blue mt-1">{result.predictedJobTitle}</h4>
                     <div className="mt-4 prose prose-sm max-w-none text-gray-700 text-left" dangerouslySetInnerHTML={{ __html: summaryHtml }}/>
                 </div>
@@ -299,6 +300,10 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     // Separate loading state for chat to not conflict with main analysis loading
     const [isChatSending, setIsChatSending] = useState(false);
     
+    // New state for improved resume generation
+    const [isImproving, setIsImproving] = useState(false);
+    const [improvedResume, setImprovedResume] = useState<string | null>(null);
+    
     useEffect(() => {
         setResumeText(initialResumeText);
     }, [initialResumeText]);
@@ -423,6 +428,21 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         recognition.start();
     };
 
+    const handleImproveResume = async () => {
+        if (!resumeText || !analysisResult) return;
+        
+        setIsImproving(true);
+        try {
+            const newResume = await generateImprovedResume(resumeText, analysisResult, chatHistory, language);
+            setImprovedResume(newResume);
+        } catch (error) {
+            console.error("Failed to improve resume:", error);
+            alert("Could not generate the resume. Please try again.");
+        } finally {
+            setIsImproving(false);
+        }
+    };
+
     const getStatusContent = (status: ResumeAnalysisStatus) => {
         switch (status) {
             case 'present': return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✔ {t('resumeAnalyzer.table.present')}</span>;
@@ -502,6 +522,27 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                             </form>
                          </div>
                      )}
+                     {analysisResult && (
+                        <div className="mt-4">
+                            <button 
+                                onClick={handleImproveResume}
+                                disabled={isImproving || isQuotaExhausted}
+                                className="w-full py-3 px-4 rounded-md text-white font-semibold bg-gradient-to-r from-brand-gold to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 shadow-md transition-all transform active:scale-95 flex items-center justify-center"
+                            >
+                                {isImproving ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        {t('resumeAnalyzer.improvingButton')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        {t('resumeAnalyzer.improveButton')}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                     )}
                 </div>
 
                 {/* Result Display Column */}
@@ -562,6 +603,26 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                     )}
                 </div>
             </div>
+            
+            {improvedResume && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 animate-fade-in">
+                    <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-lg shadow-2xl flex flex-col m-4 overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-teal-dark text-white">
+                            <h3 className="text-xl font-bold">{t('resumeAnalyzer.improvedTitle')}</h3>
+                            <button onClick={() => setImprovedResume(null)} className="text-gray-300 hover:text-white">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto p-6 bg-gray-100">
+                            <DocumentDisplay 
+                                generatedDocument={improvedResume} 
+                                isLoading={false} 
+                                error={null} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 };

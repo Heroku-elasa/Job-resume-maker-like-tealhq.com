@@ -178,6 +178,11 @@ export const fa = {
         placeholder: 'متن رزومه خود را اینجا جای‌گذاری کنید...',
         analyzeButton: 'شروع تحلیل',
         analyzingButton: 'در حال تحلیل...',
+        overallScore: 'امتیاز کلی',
+        predictedRole: 'نقش پیش‌بینی شده',
+        improveButton: 'ساخت رزومه اصلاح شده (PDF/Word)',
+        improvingButton: 'در حال بازنویسی...',
+        improvedTitle: 'رزومه حرفه‌ای جدید شما',
         table: {
             title: 'تحلیل و وضعیت توانمندی‌های محوری',
             category: 'دسته‌بندی',
@@ -714,6 +719,11 @@ export const en = {
         placeholder: 'Paste your resume text here...',
         analyzeButton: 'Start Analysis',
         analyzingButton: 'Analyzing...',
+        overallScore: 'Overall Score',
+        predictedRole: 'Predicted Role',
+        improveButton: 'Generate Improved Resume (PDF/Word)',
+        improvingButton: 'Rewriting Resume...',
+        improvedTitle: 'Your New Professional Resume',
         table: {
             title: 'Core Competencies Analysis & Status',
             category: 'Category',
