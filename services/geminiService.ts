@@ -1,10 +1,17 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication } from '../types';
 
 // --- INITIALIZATION ---
 // We use the Direct SDK for AI calls to prevent proxy timeouts on long tasks.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// SAFETY CHECK: Prevent app crash if API key is missing (common white-screen cause)
+const apiKey = process.env.API_KEY;
+if (!apiKey) {
+    console.error("CRITICAL ERROR: API_KEY is missing. The app will not function correctly. Please check Cloudflare variables or vite.config.ts.");
+}
+
+// Initialize with real key or dummy key to prevent immediate crash on load
+const ai = new GoogleGenAI({ apiKey: apiKey || 'MISSING_API_KEY_CHECK_LOGS' });
 
 // --- HELPER FUNCTIONS ---
 
