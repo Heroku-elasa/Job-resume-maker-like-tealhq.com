@@ -20,13 +20,14 @@ import CorporateServices from './components/CorporateServices';
 import InsuranceServices from './components/InsuranceServices';
 import JobAssistant from './components/JobAssistant';
 import ResumeAnalyzer from './components/ResumeAnalyzer';
+import HiringAssistant from './components/HiringAssistant';
 import AIGuideModal from './components/AIGuideModal';
 import QuotaErrorModal from './components/QuotaErrorModal';
 import Chatbot from './components/Chatbot';
 import Dashboard from './components/Dashboard';
 
 // Type and Service Imports
-import { AppState, Checkpoint, PageKey, SaveStatus, useLanguage, Lawyer, Notary, LatLng, StrategyTask, IntentRoute, FilePart, DraftPreparationResult, AutoSaveData, JobApplication, JobDetails, ResumeAnalysisItem, ChatMessage, ResumeAnalysisResult } from './types';
+import { AppState, Checkpoint, PageKey, SaveStatus, useLanguage, Lawyer, Notary, LatLng, StrategyTask, IntentRoute, FilePart, DraftPreparationResult, AutoSaveData, JobApplication, JobDetails, ResumeAnalysisItem, ChatMessage, ResumeAnalysisResult, HiringCandidate } from './types';
 import * as geminiService from './services/geminiService';
 import * as dbService from './services/dbService';
 import { REPORT_TYPES, RESUME_ANALYSIS_CRITERIA } from './constants';
@@ -35,7 +36,7 @@ const LOCAL_STORAGE_KEY = 'dadgar-ai-autosave';
 const CHECKPOINTS_STORAGE_KEY = 'dadgar-ai-checkpoints';
 
 const initialState: AppState = {
-  page: 'resume_analyzer',
+  page: 'home',
   document: '',
   form: {
     topic: '',
@@ -119,6 +120,8 @@ const initialState: AppState = {
   resumeAnalyzer_resumeText: '',
   resumeAnalyzer_analysisResult: null,
   resumeAnalyzer_chatHistory: [],
+  hiringAssistant_jobDescription: '',
+  hiringAssistant_candidates: [],
 };
 
 const App: React.FC = () => {
@@ -263,6 +266,8 @@ const App: React.FC = () => {
         insurance_lifeNeedsQuery: state.insurance_lifeNeedsQuery,
         jobAssistant_currentUserCv: state.jobAssistant_currentUserCv,
         resumeAnalyzer_resumeText: state.resumeAnalyzer_resumeText,
+        hiringAssistant_jobDescription: state.hiringAssistant_jobDescription,
+        hiringAssistant_candidates: state.hiringAssistant_candidates,
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
       setSaveStatus('saved');
@@ -919,6 +924,18 @@ const App: React.FC = () => {
             onChat={handleResumeChat}
             isLoading={isLoading}
             error={isApiError}
+            isQuotaExhausted={isQuotaExhausted}
+          /></ToolWrapper>;
+      case 'hiring_assistant':
+          return <ToolWrapper><HiringAssistant
+            jobDescription={state.hiringAssistant_jobDescription}
+            setJobDescription={(v) => setSingleState('hiringAssistant_jobDescription', v)}
+            candidates={state.hiringAssistant_candidates}
+            setCandidates={(v) => setSingleState('hiringAssistant_candidates', v)}
+            isLoading={isLoading}
+            error={isApiError}
+            setIsLoading={setIsLoading}
+            setError={setIsApiError}
             isQuotaExhausted={isQuotaExhausted}
           /></ToolWrapper>;
       default:

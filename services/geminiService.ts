@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication, JobSearchSuggestion } from '../types';
+import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication, JobSearchSuggestion, HiringCandidate } from '../types';
 
 // --- INITIALIZATION ---
 // We use the Direct SDK for AI calls to prevent proxy timeouts on long tasks.
@@ -453,6 +453,63 @@ export async function generateImprovedResume(
         contents: [{ parts: [{ text: prompt }] }]
     });
     return response.text || "";
+}
+
+// --- HIRING ASSISTANT ---
+
+export async function analyzeCandidateMatch(resumeText: string, jobDescription: string): Promise<HiringCandidate> {
+    const prompt = `Act as an expert HR Recruiter. Compare the candidate's resume to the job description.
+    
+    Job Description:
+    ${jobDescription.substring(0, 10000)}
+    
+    Candidate Resume:
+    ${resumeText.substring(0, 15000)}
+    
+    Output a JSON object with:
+    - name: Candidate name (extract from resume)
+    - matchScore: Number 0-100 indicating fit
+    - status: "shortlisted" (>=80), "maybe" (50-79), or "rejected" (<50)
+    - summary: 2-3 sentence summary of why they fit or don't fit.
+    - keySkills: Array of matching skills found.
+    - missingSkills: Array of critical missing skills.
+    - interviewQuestions: Array of 3 specific technical/behavioral questions to ask this candidate based on their resume gaps or strengths.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    matchScore: { type: Type.NUMBER },
+                    status: { type: Type.STRING, enum: ['shortlisted', 'maybe', 'rejected'] },
+                    summary: { type: Type.STRING },
+                    keySkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    interviewQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ['name', 'matchScore', 'status', 'summary', 'keySkills', 'missingSkills', 'interviewQuestions']
+            }
+        }
+    });
+    
+    const result = safeJsonParse<Partial<HiringCandidate>>(response.text || "{}", 'candidate analysis');
+    return {
+        id: "", // Will be assigned by caller
+        fileName: "", // Will be assigned by caller
+        resumeText: "", // Will be assigned by caller
+        name: result.name || "Unknown Candidate",
+        matchScore: result.matchScore || 0,
+        status: (result.status as any) || 'pending',
+        summary: result.summary || "No summary available.",
+        keySkills: result.keySkills || [],
+        missingSkills: result.missingSkills || [],
+        interviewQuestions: result.interviewQuestions || []
+    };
 }
 
 // --- SCRAPING (VIA PROXY & MOCK) ---

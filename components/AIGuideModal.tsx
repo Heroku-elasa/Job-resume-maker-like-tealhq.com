@@ -65,6 +65,7 @@ const AIGuideModal: React.FC<AIGuideModalProps> = ({
     insurance_services: t('header.insurance_services'),
     job_assistant: t('header.job_assistant'),
     resume_analyzer: t('header.resume_analyzer'),
+    hiring_assistant: t('header.hiring_assistant'),
   };
 
   return (

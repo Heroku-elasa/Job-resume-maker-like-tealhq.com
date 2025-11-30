@@ -484,13 +484,13 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                         onClick={() => setIsManualMode(false)}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isManualMode ? 'bg-white text-teal-dark shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        AI Assistant
+                        {t('jobAssistant.mode.ai')}
                     </button>
                     <button 
                         onClick={() => setIsManualMode(true)}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isManualMode ? 'bg-white text-teal-dark shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Manual Log
+                        {t('jobAssistant.mode.manual')}
                     </button>
                 </div>
             </div>
@@ -641,7 +641,7 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
             <h3 className="text-xl font-bold text-teal-dark mb-4">{t('jobAssistant.dashboard.title')}</h3>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-gray-600">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50"><tr><th className="px-4 py-3">{t('jobAssistant.dashboard.jobTitle')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.company')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.date')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.status')}</th><th className="px-4 py-3">Actions</th></tr></thead>
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50"><tr><th className="px-4 py-3">{t('jobAssistant.dashboard.jobTitle')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.company')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.date')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.status')}</th><th className="px-4 py-3">{t('jobAssistant.dashboard.actions')}</th></tr></thead>
                     <tbody>
                         {applications.map(app => (
                             <tr key={app.id} className="border-b hover:bg-gray-50">
@@ -710,9 +710,9 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                     </button>
                 </div>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                    <span className="text-xs text-gray-500 self-center">Try Demo:</span>
-                    <button onClick={() => setLinkedInUrl("https://linkedin.com/in/demo-software-engineer")} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 transition-colors">Software Engineer</button>
-                    <button onClick={() => setLinkedInUrl("https://linkedin.com/in/demo-product-manager")} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 transition-colors">Product Manager</button>
+                    <span className="text-xs text-gray-500 self-center">{t('jobAssistant.cv.tryDemo')}</span>
+                    <button onClick={() => setLinkedInUrl("https://linkedin.com/in/demo-software-engineer")} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 transition-colors">{t('jobAssistant.cv.demoDev')}</button>
+                    <button onClick={() => setLinkedInUrl("https://linkedin.com/in/demo-product-manager")} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 transition-colors">{t('jobAssistant.cv.demoPm')}</button>
                 </div>
               </div>
             
@@ -823,7 +823,7 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
         <section className="py-12 sm:py-16">
             <div className="max-w-7xl mx-auto">
                 <div className="max-w-4xl mx-auto text-center mb-12">
-                    <h1 className="text-4xl font-bold text-teal-dark">{t('header.jobAssistant')}</h1>
+                    <h1 className="text-4xl font-bold text-teal-dark">{t('header.job_assistant')}</h1>
                     <p className="mt-4 text-lg text-gray-600">{t('jobAssistant.subtitle')}</p>
                 </div>
                 

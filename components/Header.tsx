@@ -72,6 +72,8 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
   
   const professionalTools: { key: PageKey; text: string }[] = [
       { key: 'resume_analyzer', text: t('header.resume_analyzer') },
+      { key: 'hiring_assistant', text: t('header.hiring_assistant') },
+      { key: 'job_assistant', text: t('header.job_assistant') },
       { key: 'legal_drafter', text: t('header.legal_drafter') },
       { key: 'lawyer_finder', text: t('header.lawyer_finder') },
       { key: 'news_summarizer', text: t('header.news_summarizer') },
@@ -145,7 +147,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
           <div className="-mr-2 flex md:hidden">
             <button onClick={() => setIsMobileMenuOpen(prev => !prev)} type="button" className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none">
               <span className="sr-only">Open menu</span>
-              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
         </div>
@@ -163,7 +165,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
                 <div className="-mr-2">
                   <button onClick={() => setIsMobileMenuOpen(false)} type="button" className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100">
                      <span className="sr-only">Close menu</span>
-                     <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                     <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
               </div>

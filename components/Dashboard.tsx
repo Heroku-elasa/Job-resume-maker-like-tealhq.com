@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage, PageKey, JobApplication, Lawyer } from '../types';
 
@@ -13,7 +15,8 @@ interface DashboardProps {
 type AdminMenu = 'dashboard' | 'posts' | 'media' | 'pages' | 'comments' | 'appearance' | 'plugins' | 'users' | 'tools' | 'settings';
 
 const Dashboard: React.FC<DashboardProps> = ({ setPage, applications, savedLawyers, generatedDocument, onEditApplication }) => {
-    const { t, language, dir } = useLanguage();
+    const { t, language } = useLanguage();
+    const dir = language === 'fa' ? 'rtl' : 'ltr';
     const [activeMenu, setActiveMenu] = useState<AdminMenu>('dashboard');
     const [quickDraftTitle, setQuickDraftTitle] = useState('');
     const [quickDraftContent, setQuickDraftContent] = useState('');

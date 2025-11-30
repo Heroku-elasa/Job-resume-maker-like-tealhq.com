@@ -176,6 +176,12 @@ export interface HiringCandidate {
     interviewQuestions?: string[];
 }
 
+export interface Checkpoint {
+    id: string;
+    date: number;
+    description: string;
+    data: AutoSaveData;
+}
 
 // --- APP STATE & CHECKPOINT SETUP ---
 
@@ -238,6 +244,7 @@ export interface AutoSaveData {
   jobAssistant_currentUserCv: string;
   resumeAnalyzer_resumeText: string;
   hiringAssistant_jobDescription: string;
+  hiringAssistant_candidates: HiringCandidate[];
 }
 
 export interface AppState {
@@ -270,4 +277,65 @@ export interface AppState {
   evidenceAnalyzerQuery: string;
   evidenceAnalysisResult: string;
   imageGenPrompt: string;
-  imageGen
+  imageGenAspectRatio: string;
+  generatedImage: string;
+  corporateServices_nameQuery: string;
+  corporateServices_generatedNames: string[];
+  corporateServices_articlesQuery: {
+    name: string;
+    type: string;
+    activity: string;
+    capital: string;
+  };
+  corporateServices_generatedArticles: string;
+  corporateServices_complianceQuery: string;
+  corporateServices_complianceAnswer: string;
+  
+  insurance_policyQuery: string;
+  insurance_policyAnalysis: string;
+  insurance_initialPolicyText: string;
+  insurance_claimQuery: {
+    incidentType: string;
+    description: string;
+    policyNumber: string;
+  };
+  insurance_generatedClaim: string;
+  insurance_recommendationQuery: string;
+  insurance_recommendationAnswer: string;
+  insurance_riskQuery: {
+    assetType: string;
+    description: string;
+  };
+  insurance_riskAssessmentResult: string;
+  insurance_fraudQuery: {
+    claimDescription: string;
+  };
+  insurance_fraudDetectionResult: string;
+  insurance_autoClaimQuery: string;
+  insurance_autoClaimResult: string;
+  insurance_quoteQuery: {
+    carModel: string;
+    carYear: string;
+    driverAge: string;
+    drivingHistory: string;
+  };
+  insurance_quoteResult: string;
+  insurance_lifeNeedsQuery: {
+    age: string;
+    income: string;
+    dependents: string;
+    debts: string;
+    goals: string;
+  };
+  insurance_lifeNeedsResult: string;
+
+  jobAssistant_applications: JobApplication[];
+  jobAssistant_currentUserCv: string;
+
+  resumeAnalyzer_resumeText: string;
+  resumeAnalyzer_analysisResult: ResumeAnalysisResult | null;
+  resumeAnalyzer_chatHistory: ChatMessage[];
+
+  hiringAssistant_jobDescription: string;
+  hiringAssistant_candidates: HiringCandidate[];
+}

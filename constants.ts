@@ -68,6 +68,7 @@ export const fa = {
         insurance_services: 'خدمات بیمه',
         job_assistant: 'دستیار کاریابی',
         resume_analyzer: 'تحلیلگر رزومه',
+        hiring_assistant: 'دستیار استخدام (HR)',
         healthStatus: {
             checking: 'در حال بررسی وضعیت API...',
             ok: 'اتصال به API برقرار است.',
@@ -142,6 +143,10 @@ export const fa = {
     jobAssistant: {
         heroDescription: 'رزومه و نامه پوششی خود را برای هر آگهی به صورت هوشمند آماده کنید.',
         subtitle: 'ابزارهای هوشمند برای بهینه‌سازی فرآیند درخواست شغل شما.',
+        mode: {
+            ai: 'دستیار هوشمند (AI)',
+            manual: 'ثبت دستی (Manual)'
+        },
         tabs: {
             apply: 'درخواست جدید',
             dashboard: 'داشبورد',
@@ -168,6 +173,7 @@ export const fa = {
             company: 'شرکت',
             date: 'آخرین بروزرسانی',
             status: 'وضعیت',
+            actions: 'عملیات',
             noApps: 'هنوز درخواستی ثبت نشده است.'
         },
         cv: {
@@ -179,7 +185,10 @@ export const fa = {
             linkedinPlaceholder: 'URL پروفایل لینکدین خود را وارد کنید...',
             syncButton: 'همگام‌سازی پروفایل',
             syncingButton: 'در حال همگام‌سازی...',
-            parsing: 'در حال پردازش فایل...'
+            parsing: 'در حال پردازش فایل...',
+            tryDemo: 'آزمایش دمو:',
+            demoDev: 'مهندس نرم‌افزار',
+            demoPm: 'مدیر محصول'
         },
         jobSearch: {
             title: 'جستجوی شغل متناسب با رزومه',
@@ -259,6 +268,27 @@ export const fa = {
             title: 'مشاهده افکار هوش مصنوعی',
             finalizing: 'در حال نهایی‌سازی تحلیل...'
         }
+    },
+    hiringAssistant: {
+        title: 'دستیار هوشمند استخدام',
+        subtitle: 'رزومه‌ها را با هوش مصنوعی فیلتر کنید و بهترین استعدادها را برای موقعیت شغلی خود پیدا کنید.',
+        jdLabel: 'شرح شغل (JD)',
+        jdPlaceholder: 'شرح وظایف، مهارت‌های مورد نیاز و مسئولیت‌ها را اینجا وارد کنید...',
+        uploadLabel: 'آپلود انبوه رزومه‌ها',
+        uploadPlaceholder: 'رزومه‌ها (PDF, DOCX) را اینجا بکشید و رها کنید',
+        analyzing: 'در حال تحلیل نامزدها...',
+        startAnalysis: 'شروع غربالگری',
+        resultsTitle: 'نتایج غربالگری',
+        candidateName: 'نام نامزد',
+        score: 'امتیاز تطابق',
+        status: 'وضعیت',
+        viewDetails: 'مشاهده جزئیات',
+        shortlisted: 'منتخب',
+        maybe: 'قابل بررسی',
+        rejected: 'رد شده',
+        keySkills: 'مهارت‌های کلیدی یافت شده',
+        missingSkills: 'مهارت‌های مفقود',
+        interviewQuestions: 'سوالات مصاحبه پیشنهادی'
     },
     generatorForm: {
         title: 'مشخصات سند حقوقی',
@@ -490,7 +520,7 @@ export const fa = {
         resultsTitle: 'ابزارهای پیشنهادی',
         confidence: 'میزان اطمینان',
         goTo: 'برو به ابزار',
-        prompt: 'کاربر هدف زیر را دارد: "{goal}". با توجه به ابزارهای موجود در برنامه (legal_drafter, lawyer_finder, news_summarizer, case_strategist, notary_finder, web_analyzer, contract_analyzer, evidence_analyzer, image_generator, corporate_services, insurance_services, job_assistant, resume_analyzer)، کدام ابزارها برای او مناسب‌تر هستند؟ خروجی باید یک آرایه JSON باشد که هر آیتم شامل module (کلید ابزار)، confidencePercentage (عدد ۰ تا ۱۰۰) و reasoning (توضیح کوتاه علت پیشنهاد) باشد. حداکثر ۳ پیشنهاد بده.',
+        prompt: 'کاربر هدف زیر را دارد: "{goal}". با توجه به ابزارهای موجود در برنامه (legal_drafter, lawyer_finder, news_summarizer, case_strategist, notary_finder, web_analyzer, contract_analyzer, evidence_analyzer, image_generator, corporate_services, insurance_services, job_assistant, resume_analyzer, hiring_assistant)، کدام ابزارها برای او مناسب‌تر هستند؟ خروجی باید یک آرایه JSON باشد که هر آیتم شامل module (کلید ابزار)، confidencePercentage (عدد ۰ تا ۱۰۰) و reasoning (توضیح کوتاه علت پیشنهاد) باشد. حداکثر ۳ پیشنهاد بده.',
         example: { prompt: 'می‌خواهم بدانم آیا می‌توانم از کارفرمایم شکایت کنم؟' }
     },
     corporateServices: {
@@ -659,6 +689,7 @@ export const en = {
         insurance_services: 'Insurance Services',
         job_assistant: 'AI Job Assistant',
         resume_analyzer: 'Resume Analyzer',
+        hiring_assistant: 'Hiring Assistant (HR)',
         healthStatus: {
             checking: 'Checking API status...',
             ok: 'API connection is healthy.',
@@ -733,6 +764,10 @@ export const en = {
     jobAssistant: {
         heroDescription: 'Intelligently prepare your resume and cover letter for any job posting.',
         subtitle: 'Smart tools to optimize your job application process.',
+        mode: {
+            ai: 'AI Assistant',
+            manual: 'Manual Log'
+        },
         tabs: {
             apply: 'New Application',
             dashboard: 'Dashboard',
@@ -759,6 +794,7 @@ export const en = {
             company: 'Company',
             date: 'Last Updated',
             status: 'Status',
+            actions: 'Actions',
             noApps: 'No applications have been created yet.'
         },
         cv: {
@@ -771,6 +807,9 @@ export const en = {
             syncButton: 'Sync Profile',
             syncingButton: 'Syncing...',
             parsing: 'Parsing file...',
+            tryDemo: 'Try Demo:',
+            demoDev: 'Software Engineer',
+            demoPm: 'Product Manager'
         },
         jobSearch: {
             title: 'Find Matching Jobs',
@@ -817,9 +856,6 @@ export const en = {
         improveButton: 'Generate Improved Resume (PDF/Word)',
         improvingButton: 'Rewriting Resume...',
         improvedTitle: 'Your New Professional Resume',
-        findJobsButton: 'Find Matching Jobs',
-        findingJobs: 'Searching...',
-        jobsTitle: 'Recommended Job Opportunities',
         linkedin: {
             tab: 'LinkedIn Profile',
             importButton: 'Import & Analyze Profile'
@@ -1081,7 +1117,7 @@ export const en = {
         resultsTitle: 'Suggested Tools',
         confidence: 'Confidence',
         goTo: 'Go to Tool',
-        prompt: 'User has this goal: "{goal}". Considering the app tools (legal_drafter, lawyer_finder, news_summarizer, case_strategist, notary_finder, web_analyzer, contract_analyzer, evidence_analyzer, image_generator, corporate_services, insurance_services, job_assistant, resume_analyzer), which ones are best? Output a JSON array where each item has module (key), confidencePercentage (0-100), and reasoning (short explanation). Max 3 suggestions.',
+        prompt: 'User has this goal: "{goal}". Considering the app tools (legal_drafter, lawyer_finder, news_summarizer, case_strategist, notary_finder, web_analyzer, contract_analyzer, evidence_analyzer, image_generator, corporate_services, insurance_services, job_assistant, resume_analyzer, hiring_assistant), which ones are best? Output a JSON array where each item has module (key), confidencePercentage (0-100), and reasoning (short explanation). Max 3 suggestions.',
         example: { prompt: 'I want to know if I can sue my employer?' }
     },
     corporateServices: {
