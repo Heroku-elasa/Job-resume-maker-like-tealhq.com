@@ -23,6 +23,7 @@ import ResumeAnalyzer from './components/ResumeAnalyzer';
 import AIGuideModal from './components/AIGuideModal';
 import QuotaErrorModal from './components/QuotaErrorModal';
 import Chatbot from './components/Chatbot';
+import Dashboard from './components/Dashboard';
 
 // Type and Service Imports
 import { AppState, Checkpoint, PageKey, SaveStatus, useLanguage, Lawyer, Notary, LatLng, StrategyTask, IntentRoute, FilePart, DraftPreparationResult, AutoSaveData, JobApplication, JobDetails, ResumeAnalysisItem, ChatMessage, ResumeAnalysisResult } from './types';
@@ -135,6 +136,12 @@ const App: React.FC = () => {
   
   const preparedSearchQueryRef = useRef<{ for: 'lawyer_finder' | 'notary_finder' | null; query: string }>({ for: null, query: '' });
   const [preparedSearchQuery, setPreparedSearchQuery] = useState(preparedSearchQueryRef.current);
+
+  // Use a ref for currentApplicationId to pass to JobAssistant via state if needed, 
+  // though JobAssistant manages its own "current" state usually. 
+  // For Dashboard edit, we need to force JobAssistant to open a specific app.
+  // We'll add a temporary state for "appToEdit"
+  const [appToEdit, setAppToEdit] = useState<JobApplication | null>(null);
 
   const saveTimeout = useRef<number | null>(null);
   
@@ -474,7 +481,6 @@ const App: React.FC = () => {
       
       setState(produce(draft => {
           draft.page = page;
-          // FIX: Corrected comparison from 'strategyGoal' to the valid PageKey 'case_strategist'.
           if (page === 'case_strategist') draft.strategyGoal = queryForPage;
       }));
       setIsAIGuideOpen(false);
@@ -691,6 +697,11 @@ const App: React.FC = () => {
       }));
   }, []);
 
+  const handleEditApplicationFromDashboard = (app: JobApplication) => {
+      setAppToEdit(app);
+      setPage('job_assistant');
+  };
+
 
   const setSingleState = (key: keyof AppState, value: any) => {
     setState(produce(draft => {
@@ -705,6 +716,17 @@ const App: React.FC = () => {
   };
 
   const renderPage = () => {
+    // If we are in dashboard, we want it full width without standard headers
+    if (state.page === 'dashboard') {
+        return <Dashboard 
+                  setPage={setPage} 
+                  applications={state.jobAssistant_applications}
+                  savedLawyers={savedLawyers}
+                  generatedDocument={state.document}
+                  onEditApplication={handleEditApplicationFromDashboard}
+               />;
+    }
+
     const pageProps = { setPage, onOpenAIGuide: () => setIsAIGuideOpen(true) };
     if (state.page === 'home') return <HomePage {...pageProps} />;
     
@@ -876,6 +898,7 @@ const App: React.FC = () => {
             lifeNeedsQuery={state.insurance_lifeNeedsQuery} setLifeNeedsQuery={v => setSingleState('insurance_lifeNeedsQuery', v)} lifeNeedsResult={state.insurance_lifeNeedsResult}
         /></ToolWrapper>;
       case 'job_assistant':
+          // Pass the appToEdit if set from Dashboard
           return <ToolWrapper><JobAssistant
             applications={state.jobAssistant_applications}
             currentUserCv={state.jobAssistant_currentUserCv}
@@ -884,6 +907,8 @@ const App: React.FC = () => {
             onUpdateApplication={handleUpdateApplication}
             handleApiError={handleApiError}
             isQuotaExhausted={isQuotaExhausted}
+            initialAppToEdit={appToEdit} // Note: You'll need to add this prop to JobAssistant
+            onClearAppToEdit={() => setAppToEdit(null)} // And this
            /></ToolWrapper>;
       case 'resume_analyzer':
           return <ToolWrapper><ResumeAnalyzer
@@ -903,15 +928,23 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col text-teal-dark`}>
-      <SiteHeader 
-        currentPage={state.page} 
-        setPage={setPage}
-        isApiHealthy={isApiHealthy}
-      />
+      {/* Conditionally render header/footer only if NOT in dashboard mode */}
+      {state.page !== 'dashboard' && (
+        <SiteHeader 
+          currentPage={state.page} 
+          setPage={setPage}
+          isApiHealthy={isApiHealthy}
+        />
+      )}
+      
       <div className="flex-grow">
         {renderPage()}
       </div>
-      <SiteFooter setPage={setPage} />
+
+      {state.page !== 'dashboard' && (
+        <SiteFooter setPage={setPage} />
+      )}
+
       <QuotaErrorModal isOpen={isQuotaExhausted} onClose={() => setIsQuotaExhausted(false)} />
       <AIGuideModal 
         isOpen={isAIGuideOpen}
@@ -924,7 +957,7 @@ const App: React.FC = () => {
         isLoading={isLoading}
         error={isApiError}
       />
-      <Chatbot isQuotaExhausted={isQuotaExhausted} handleApiError={handleApiError} />
+      {state.page !== 'dashboard' && <Chatbot isQuotaExhausted={isQuotaExhausted} handleApiError={handleApiError} />}
     </div>
   );
 };

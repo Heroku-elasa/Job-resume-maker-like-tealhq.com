@@ -4,8 +4,8 @@ import { useDropzone } from 'react-dropzone';
 import mammoth from 'mammoth';
 import { marked } from 'marked';
 import { produce } from 'immer';
-import { ResumeAnalysisItem, ChatMessage, useLanguage, ResumeAnalysisStatus, FilePart, ResumeAnalysisResult } from '../types';
-import { extractTextFromDocument, generateImprovedResume } from '../services/geminiService';
+import { ResumeAnalysisItem, ChatMessage, useLanguage, ResumeAnalysisStatus, FilePart, ResumeAnalysisResult, JobSearchSuggestion } from '../types';
+import { extractTextFromDocument, generateImprovedResume, syncLinkedInProfile, suggestJobSearches } from '../services/geminiService';
 import { RESUME_ANALYSIS_CRITERIA } from '../constants';
 import DocumentDisplay from './ReportDisplay';
 
@@ -199,7 +199,14 @@ const AnalysisSummary: React.FC<{ result: ResumeAnalysisResult }> = ({ result })
     );
 };
 
-const ProgressBar: React.FC<{ isParsing: boolean, isLoading: boolean, analysisResult: any, error: any, t: (key: string) => string }> = ({ isParsing, isLoading, analysisResult, error, t }) => {
+const ProgressBar: React.FC<{ 
+    isParsing: boolean, 
+    isLoading: boolean, 
+    analysisResult: any, 
+    error: any, 
+    hasResumeText: boolean, 
+    t: (key: string) => string 
+}> = ({ isParsing, isLoading, analysisResult, error, hasResumeText, t }) => {
     const stages = [
         { key: 'upload', label: t('resumeAnalyzer.progressBar.upload') },
         { key: 'parse', label: t('resumeAnalyzer.progressBar.parse') },
@@ -208,17 +215,21 @@ const ProgressBar: React.FC<{ isParsing: boolean, isLoading: boolean, analysisRe
     ];
 
     let currentStageIndex = 0;
-    if (error) {
-        currentStageIndex = isLoading ? 2 : (isParsing ? 1 : 0);
-    } else if (analysisResult) {
+    if (analysisResult) {
         currentStageIndex = 3;
     } else if (isLoading) {
         currentStageIndex = 2;
+    } else if (hasResumeText) {
+        // Text is ready, waiting for analysis
+        currentStageIndex = 1; // Parse is technically "done", so we are at the start of Analyze
     } else if (isParsing) {
         currentStageIndex = 1;
     } else {
         currentStageIndex = 0;
     }
+
+    // Adjust for visualization: If waiting for analysis (hasText), we want Parse to be colored as done
+    const effectiveIndex = hasResumeText && !isLoading && !analysisResult ? 1.5 : currentStageIndex;
 
     return (
         <div className="w-full px-4 sm:px-0 mb-8">
@@ -226,25 +237,28 @@ const ProgressBar: React.FC<{ isParsing: boolean, isLoading: boolean, analysisRe
                 <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full -z-10"></div>
                  <div 
                     className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-teal-500 rounded-full -z-10 transition-all duration-500 ease-out"
-                    style={{ width: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
+                    style={{ width: `${Math.min(100, (Math.floor(effectiveIndex) / (stages.length - 1)) * 100 + (effectiveIndex % 1 === 0.5 ? 12 : 0))}%` }}
                 ></div>
                 
                 {stages.map((stage, index) => {
-                    const isCompleted = index < currentStageIndex;
-                    const isCurrent = index === currentStageIndex;
-                    const isPending = index > currentStageIndex;
+                    const isCompleted = index < effectiveIndex;
+                    const isCurrent = index === Math.floor(effectiveIndex) || (index === Math.ceil(effectiveIndex) && effectiveIndex % 1 === 0.5);
+                    const isPending = index > effectiveIndex;
+                    const isActualLoading = isLoading && index === 2;
                     
                     return (
                         <div key={stage.key} className="flex flex-col items-center">
                             <div className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300
+                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 z-10
                                 ${isCompleted ? 'bg-teal-500 border-teal-500 text-white scale-110' : ''}
-                                ${isCurrent ? 'bg-white border-teal-500 text-teal-500 scale-125 ring-4 ring-teal-100' : ''}
+                                ${isCurrent && !isCompleted ? 'bg-white border-teal-500 text-teal-500 scale-125 ring-4 ring-teal-100' : ''}
                                 ${isPending ? 'bg-white border-gray-300 text-gray-400' : ''}
                                 ${error && isCurrent ? 'border-red-500 text-red-500 ring-red-100' : ''}
                             `}>
                                 {isCompleted ? (
                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                ) : isActualLoading || (isParsing && index === 1) ? (
+                                    <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 ) : (
                                     <span>{index + 1}</span>
                                 )}
@@ -356,7 +370,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     isQuotaExhausted
 }) => {
     const { t, language } = useLanguage();
-    const [activeTab, setActiveTab] = useState<'upload' | 'text'>('upload');
+    const [activeTab, setActiveTab] = useState<'upload' | 'text' | 'linkedin'>('upload');
     const [resumeText, setResumeText] = useState(initialResumeText);
     const [file, setFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
@@ -372,6 +386,15 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     // New state for improved resume generation
     const [isImproving, setIsImproving] = useState(false);
     const [improvedResume, setImprovedResume] = useState<string | null>(null);
+
+    // LinkedIn State
+    const [linkedInUrl, setLinkedInUrl] = useState('');
+    const [isSyncingLinkedIn, setIsSyncingLinkedIn] = useState(false);
+    const [linkedInError, setLinkedInError] = useState<string | null>(null);
+
+    // Job Suggestion State
+    const [jobSuggestions, setJobSuggestions] = useState<JobSearchSuggestion[]>([]);
+    const [isLoadingJobs, setIsLoadingJobs] = useState(false);
     
     useEffect(() => {
         setResumeText(initialResumeText);
@@ -449,6 +472,24 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         onAnalyze(resumeText);
     };
 
+    const handleLinkedInImport = async () => {
+        if (!linkedInUrl.trim()) {
+            setLinkedInError("Please enter a valid LinkedIn URL");
+            return;
+        }
+        setIsSyncingLinkedIn(true);
+        setLinkedInError(null);
+        try {
+            const text = await syncLinkedInProfile(linkedInUrl);
+            setResumeText(text);
+            setActiveTab('text');
+        } catch (err: any) {
+            setLinkedInError(err.message || "Failed to import LinkedIn profile");
+        } finally {
+            setIsSyncingLinkedIn(false);
+        }
+    };
+
     const handleChatSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (chatInput.trim()) {
@@ -512,6 +553,24 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         }
     };
 
+    const handleFindJobs = async () => {
+        if (!resumeText) return;
+        setIsLoadingJobs(true);
+        try {
+            const suggestions = await suggestJobSearches(resumeText);
+            setJobSuggestions(suggestions);
+            // Scroll to suggestions
+            setTimeout(() => {
+                document.getElementById('job-suggestions')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to find jobs");
+        } finally {
+            setIsLoadingJobs(false);
+        }
+    };
+
     const getStatusContent = (status: ResumeAnalysisStatus) => {
         switch (status) {
             case 'present': return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✔ {t('resumeAnalyzer.table.present')}</span>;
@@ -546,8 +605,15 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-6 lg:sticky top-28">
                      <div className="bg-white rounded-lg p-6 shadow-lg space-y-4">
-                        <div className="border-b border-gray-200"><nav className="-mb-px flex space-x-4"><button onClick={() => setActiveTab('upload')} className={`${activeTab === 'upload' ? 'border-teal-blue text-teal-blue' : 'border-transparent text-gray-500'} py-2 px-1 border-b-2 text-sm transition-colors`}>{t('resumeAnalyzer.uploadTab')}</button><button onClick={() => setActiveTab('text')} className={`${activeTab === 'text' ? 'border-teal-blue text-teal-blue' : 'border-transparent text-gray-500'} py-2 px-1 border-b-2 text-sm transition-colors`}>{t('resumeAnalyzer.textTab')}</button></nav></div>
-                        {activeTab === 'upload' ? (
+                        <div className="border-b border-gray-200">
+                            <nav className="-mb-px flex space-x-4">
+                                <button onClick={() => setActiveTab('upload')} className={`${activeTab === 'upload' ? 'border-teal-blue text-teal-blue' : 'border-transparent text-gray-500'} py-2 px-1 border-b-2 text-sm transition-colors`}>{t('resumeAnalyzer.uploadTab')}</button>
+                                <button onClick={() => setActiveTab('text')} className={`${activeTab === 'text' ? 'border-teal-blue text-teal-blue' : 'border-transparent text-gray-500'} py-2 px-1 border-b-2 text-sm transition-colors`}>{t('resumeAnalyzer.textTab')}</button>
+                                <button onClick={() => setActiveTab('linkedin')} className={`${activeTab === 'linkedin' ? 'border-teal-blue text-teal-blue' : 'border-transparent text-gray-500'} py-2 px-1 border-b-2 text-sm transition-colors`}>{t('resumeAnalyzer.linkedin.tab')}</button>
+                            </nav>
+                        </div>
+                        
+                        {activeTab === 'upload' && (
                             <div {...getRootProps()} className={`p-6 border-2 border-dashed rounded-md cursor-pointer text-center transition-colors ${isDragActive ? 'border-teal-blue bg-teal-blue/10' : 'border-gray-300 hover:border-teal-blue/50'}`}>
                                 <input {...getInputProps()} />
                                 {isParsing ? (
@@ -560,16 +626,60 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                                 )}
                                 {fileError && <p className="text-red-500 text-sm mt-2">{fileError}</p>}
                             </div>
-                        ) : (
+                        )}
+
+                        {activeTab === 'text' && (
                             <textarea rows={8} value={resumeText} onChange={e => setResumeText(e.target.value)} className="w-full bg-gray-50 border-gray-300 rounded-md py-2 px-3 text-sm text-teal-dark focus:ring-teal-blue focus:border-teal-blue" placeholder={t('resumeAnalyzer.placeholder')} />
                         )}
+
+                        {activeTab === 'linkedin' && (
+                            <div className="space-y-3">
+                                <label htmlFor="linkedin-url-analyzer" className="block text-sm font-medium text-gray-700">{t('jobAssistant.cv.linkedinLabel')}</label>
+                                <input 
+                                    type="url" 
+                                    id="linkedin-url-analyzer" 
+                                    value={linkedInUrl} 
+                                    onChange={e => setLinkedInUrl(e.target.value)} 
+                                    className="w-full border-gray-300 rounded-md py-2 px-3 text-sm text-teal-dark shadow-sm focus:ring-teal-blue focus:border-teal-blue" 
+                                    placeholder={t('jobAssistant.cv.linkedinPlaceholder')} 
+                                />
+                                <button 
+                                    onClick={handleLinkedInImport} 
+                                    disabled={isSyncingLinkedIn} 
+                                    className="w-full py-2 px-4 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 flex items-center justify-center"
+                                >
+                                    {isSyncingLinkedIn ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            {t('jobAssistant.cv.syncingButton')}
+                                        </>
+                                    ) : t('resumeAnalyzer.linkedin.importButton')}
+                                </button>
+                                {linkedInError && (
+                                    <div className="text-red-600 p-3 bg-red-50 rounded-md text-xs border border-red-200">
+                                        <div className="font-bold mb-1">Error:</div>
+                                        <div className="whitespace-pre-wrap">{linkedInError}</div>
+                                        {linkedInError.includes('LinkedIn') && (
+                                            <div className="mt-2 pt-2 border-t border-red-200 text-gray-600">
+                                                <p>Direct scraping is restricted. For development, try:</p>
+                                                <ul className="list-disc pl-4 mt-1">
+                                                    <li>Demo buttons below</li>
+                                                    <li>Uploading a PDF of your profile</li>
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="flex gap-2 mt-1">
                             <button onClick={() => {setResumeText(DEMO_RESUME_DEV); setActiveTab('text');}} className="text-xs text-teal-600 hover:underline bg-teal-50 px-2 py-1 rounded border border-teal-100">Demo: Software Engineer</button>
                             <button onClick={() => {setResumeText(DEMO_RESUME_MANAGER); setActiveTab('text');}} className="text-xs text-teal-600 hover:underline bg-teal-50 px-2 py-1 rounded border border-teal-100">Demo: Product Manager</button>
                         </div>
                          <button 
                             onClick={handleAnalyzeClick} 
-                            disabled={isParsing || isLoading || isQuotaExhausted || !resumeText.trim()} 
+                            disabled={isParsing || isLoading || isQuotaExhausted || (!resumeText.trim() && !file)} 
                             className="w-full py-3 px-4 rounded-md text-white font-semibold bg-teal-blue hover:bg-teal-light-blue disabled:bg-gray-400 transition-all transform active:scale-95"
                          >
                             {isParsing ? t('jobAssistant.cv.parsing') : (isLoading && !analysisResult ? t('resumeAnalyzer.analyzingButton') : t('resumeAnalyzer.analyzeButton'))}
@@ -596,21 +706,38 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                          </div>
                      )}
                      {analysisResult && (
-                        <div className="mt-4">
+                        <div className="mt-4 flex gap-3">
                             <button 
                                 onClick={handleImproveResume}
                                 disabled={isImproving || isQuotaExhausted}
-                                className="w-full py-3 px-4 rounded-md text-white font-semibold bg-gradient-to-r from-brand-gold to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 shadow-md transition-all transform active:scale-95 flex items-center justify-center"
+                                className="flex-1 py-3 px-4 rounded-md text-white font-semibold bg-gradient-to-r from-brand-gold to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 shadow-md transition-all transform active:scale-95 flex items-center justify-center text-xs sm:text-sm"
                             >
                                 {isImproving ? (
                                     <>
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                         {t('resumeAnalyzer.improvingButton')}
                                     </>
                                 ) : (
                                     <>
-                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                         {t('resumeAnalyzer.improveButton')}
+                                    </>
+                                )}
+                            </button>
+                            <button 
+                                onClick={handleFindJobs}
+                                disabled={isLoadingJobs || isQuotaExhausted}
+                                className="flex-1 py-3 px-4 rounded-md text-white font-semibold bg-teal-600 hover:bg-teal-700 shadow-md transition-all transform active:scale-95 flex items-center justify-center text-xs sm:text-sm"
+                            >
+                                {isLoadingJobs ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        {t('resumeAnalyzer.findingJobs')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        {t('resumeAnalyzer.findJobsButton')}
                                     </>
                                 )}
                             </button>
@@ -620,7 +747,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
 
                 {/* Result Display Column */}
                 <div className="lg:col-span-3 space-y-6">
-                    <ProgressBar isParsing={isParsing} isLoading={isLoading} analysisResult={analysisResult} error={error} t={t} />
+                    <ProgressBar isParsing={isParsing} isLoading={isLoading} analysisResult={analysisResult} error={error} hasResumeText={!!resumeText.trim()} t={t} />
                     
                     {isLoading && <AIThoughts isLoading={isLoading} language={language} />}
                     
@@ -629,6 +756,53 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                     {analysisResult && (
                         <div className="animate-fade-in">
                              <AnalysisSummary result={analysisResult} />
+                             
+                             {jobSuggestions.length > 0 && (
+                                <div id="job-suggestions" className="mb-6 animate-fade-in">
+                                    <h3 className="text-xl font-bold text-teal-dark mb-4">{t('resumeAnalyzer.jobsTitle')}</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {jobSuggestions.map((suggestion, idx) => (
+                                            <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                <h5 className="font-bold text-teal-blue">{suggestion.jobTitle}</h5>
+                                                <p className="text-xs text-gray-500 mt-1">{suggestion.reasoning}</p>
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    {suggestion.keywords.map(k => (
+                                                        <span key={k} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200">{k}</span>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-4 flex gap-2">
+                                                    <a 
+                                                    href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(suggestion.keywords.join(' '))}`} 
+                                                    target="_blank" 
+                                                    rel="noreferrer"
+                                                    className="text-xs bg-[#0077b5] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                                                        LinkedIn
+                                                    </a>
+                                                    <a 
+                                                    href={`https://jobinja.ir/jobs?filters%5Bkeywords%5D%5B0%5D=${encodeURIComponent(suggestion.jobTitle)}`} 
+                                                    target="_blank" 
+                                                    rel="noreferrer"
+                                                    className="text-xs bg-[#00bfa5] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
+                                                    >
+                                                        Jobinja
+                                                    </a>
+                                                     <a 
+                                                    href={`https://www.google.com/search?q=${encodeURIComponent(suggestion.jobTitle + ' jobs')}&ibp=htl;jobs`} 
+                                                    target="_blank" 
+                                                    rel="noreferrer"
+                                                    className="text-xs bg-red-500 text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
+                                                    >
+                                                        Google
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                              <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
                                 <div className="p-4 bg-gray-50 border-b border-gray-200">
                                     <h3 className="text-lg font-bold text-teal-dark">{t('resumeAnalyzer.table.title')}</h3>

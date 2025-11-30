@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { IntentRoute, PageKey, useLanguage } from '../types';
 import { useAISuggestions, AISuggestionsDisplay } from './AISuggestions';
@@ -50,6 +51,7 @@ const AIGuideModal: React.FC<AIGuideModalProps> = ({
   };
 
   const moduleTranslations: Record<PageKey, string> = {
+    dashboard: t('header.dashboard'),
     legal_drafter: t('header.legal_drafter'),
     lawyer_finder: t('header.lawyer_finder'),
     news_summarizer: t('header.news_summarizer'),
@@ -62,7 +64,6 @@ const AIGuideModal: React.FC<AIGuideModalProps> = ({
     corporate_services: t('header.corporate_services'),
     insurance_services: t('header.insurance_services'),
     job_assistant: t('header.job_assistant'),
-    // FIX: Added missing resume_analyzer key to satisfy the PageKey type.
     resume_analyzer: t('header.resume_analyzer'),
   };
 

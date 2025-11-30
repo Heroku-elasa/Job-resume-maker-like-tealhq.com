@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication } from '../types';
+import { GroundingChunk, StrategyTask, IntentRoute, DraftPreparationResult, ChatMessage, FilePart, LatLng, JobDetails, ResumeAnalysisItem, ResumeAnalysisResult, JobApplication, JobSearchSuggestion } from '../types';
 
 // --- INITIALIZATION ---
 // We use the Direct SDK for AI calls to prevent proxy timeouts on long tasks.
@@ -553,7 +553,11 @@ export async function syncLinkedInProfile(url: string): Promise<string> {
             model: 'gemini-2.5-flash',
             contents: [{ parts: [{ text: prompt }, { text: html.substring(0, 25000) }] }]
         });
-        return response.text || "";
+        
+        let text = response.text || "";
+        // Clean up markdown code blocks if present
+        text = text.replace(/```markdown/gi, '').replace(/```/g, '').trim();
+        return text;
 
     } catch (e: any) {
         // 3. Fail gracefully with educational content about scraping restrictions
@@ -562,11 +566,10 @@ export async function syncLinkedInProfile(url: string): Promise<string> {
         throw new Error(
             `LinkedIn Scraping Failed (Restricted).\n\n` +
             `Direct scraping of LinkedIn profiles is blocked by their Terms of Service. ` +
-            `Automated tools (like 'linkedin-scraper' on GitHub) require Selenium/Python and cannot run in the browser.\n\n` +
-            `**Recommended Solution:**\n` +
-            `1. Go to your LinkedIn Profile.\n` +
-            `2. Click 'More' > 'Save to PDF'.\n` +
-            `3. Upload the PDF file here instead.`
+            `For a production app, you would need a backend service using libraries like 'linkedin-scraper' or 'Proxycurl'.\n\n` +
+            `**Safe Alternative for this Demo:**\n` +
+            `1. Use the 'Demo Profile' buttons above.\n` +
+            `2. Or Save your profile as PDF and upload it.`
         );
     }
 }
@@ -603,6 +606,39 @@ export async function chatWithJobCoach(history: ChatMessage[], application: JobA
         config: { systemInstruction }
     });
     return response.text || "";
+}
+
+export async function suggestJobSearches(resumeText: string): Promise<JobSearchSuggestion[]> {
+    const prompt = `Analyze this resume and suggest 3 specific job search strategies/queries to find relevant open positions.
+    Resume: ${resumeText.substring(0, 5000)}...
+    
+    Output JSON array of objects:
+    {
+        "jobTitle": "Specific Job Title",
+        "keywords": ["keyword1", "keyword2"],
+        "reasoning": "Why this fits"
+    }`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        jobTitle: { type: Type.STRING },
+                        keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        reasoning: { type: Type.STRING }
+                    },
+                    required: ['jobTitle', 'keywords', 'reasoning']
+                }
+            }
+        }
+    });
+    return safeJsonParse(response.text || "[]", 'job search suggestions');
 }
 
 // --- UTILS & PLACEHOLDERS ---

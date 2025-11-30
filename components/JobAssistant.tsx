@@ -4,7 +4,7 @@ import { produce } from 'immer';
 import { useDropzone } from 'react-dropzone';
 import mammoth from 'mammoth';
 import { nanoid } from 'nanoid';
-import { JobApplication, JobDetails, useLanguage, JobApplicationStatus, FilePart, ChatMessage } from '../types';
+import { JobApplication, JobDetails, useLanguage, JobApplicationStatus, FilePart, ChatMessage, JobSearchSuggestion } from '../types';
 import * as geminiService from '../services/geminiService';
 
 const CV_LOCAL_STORAGE_KEY = 'dadgar-ai-cv-draft';
@@ -17,6 +17,8 @@ interface JobAssistantProps {
     onUpdateApplication: (app: JobApplication) => Promise<void>;
     handleApiError: (err: unknown) => string;
     isQuotaExhausted: boolean;
+    initialAppToEdit?: JobApplication | null;
+    onClearAppToEdit?: () => void;
 }
 
 const fileToBase64 = (file: File): Promise<string> => 
@@ -69,10 +71,59 @@ const fileToText = (file: File): Promise<string> => {
     });
 };
 
+const GenerationStepper: React.FC<{ currentStep: number }> = ({ currentStep }) => {
+    const steps = ['Job Analysis', 'Tailoring Resume', 'Writing Cover Letter', 'Review'];
+    
+    return (
+        <div className="w-full mb-8 px-2">
+            <div className="flex items-center justify-between relative">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10 rounded-full"></div>
+                <div 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-teal-500 -z-10 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+                ></div>
+                {steps.map((label, index) => {
+                    const stepNum = index + 1;
+                    const isCompleted = stepNum < currentStep;
+                    const isCurrent = stepNum === currentStep;
+                    const isPending = stepNum > currentStep;
+
+                    return (
+                        <div key={label} className="flex flex-col items-center">
+                            <div className={`
+                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 z-10 bg-white
+                                ${isCompleted ? 'bg-teal-500 border-teal-500 text-white' : ''}
+                                ${isCurrent ? 'border-teal-500 text-teal-500 ring-4 ring-teal-100 scale-110' : ''}
+                                ${isPending ? 'border-gray-300 text-gray-400' : ''}
+                            `}>
+                                {isCompleted ? (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                ) : isCurrent ? (
+                                    <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ) : (
+                                    stepNum
+                                )}
+                            </div>
+                            <span className={`
+                                mt-2 text-xs font-medium transition-colors duration-300 absolute -bottom-6 w-32 text-center
+                                ${isCurrent ? 'text-teal-700 font-bold' : isCompleted ? 'text-teal-600' : 'text-gray-400'}
+                            `}>
+                                {label}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+            <div className="h-6"></div>
+        </div>
+    );
+};
+
 
 const JobAssistant: React.FC<JobAssistantProps> = ({ 
     applications, currentUserCv, setCurrentUserCv, 
-    onAddApplication, onUpdateApplication, handleApiError, isQuotaExhausted
+    onAddApplication, onUpdateApplication, handleApiError, isQuotaExhausted,
+    initialAppToEdit, onClearAppToEdit
 }) => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'apply' | 'dashboard' | 'cv'>('apply');
@@ -93,6 +144,7 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
 
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
+    const [generationStep, setGenerationStep] = useState(0); // 0: Idle, 1: Analysis, 2: Resume, 3: Cover Letter, 4: Done
     const [error, setError] = useState<string | null>(null);
 
     const [linkedInUrl, setLinkedInUrl] = useState('');
@@ -108,6 +160,19 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    // Job Suggestions State
+    const [jobSuggestions, setJobSuggestions] = useState<JobSearchSuggestion[]>([]);
+    const [areSuggestionsLoading, setAreSuggestionsLoading] = useState(false);
+
+    // Handle initial edit
+    useEffect(() => {
+        if (initialAppToEdit) {
+            setCurrentApplication(initialAppToEdit);
+            setActiveTab('apply');
+            if (onClearAppToEdit) onClearAppToEdit();
+        }
+    }, [initialAppToEdit, onClearAppToEdit]);
 
     // Auto-load from localStorage on mount
     useEffect(() => {
@@ -176,14 +241,23 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
     });
 
     const handleLinkedInSync = async () => {
-        if (!linkedInUrl) {
+        const urlToSync = linkedInUrl.trim();
+        if (!urlToSync) {
             setError('Please enter your LinkedIn profile URL.');
             return;
         }
+
+        // Validate URL
+        const isDemo = urlToSync.includes('demo-software-engineer') || urlToSync.includes('demo-product-manager');
+        if (!isDemo && !urlToSync.toLowerCase().includes('linkedin.com/in/')) {
+             setError('Please enter a valid LinkedIn profile URL (e.g., https://www.linkedin.com/in/username).');
+             return;
+        }
+
         setError(null);
         setIsSyncing(true);
         try {
-            const cvText = await geminiService.syncLinkedInProfile(linkedInUrl);
+            const cvText = await geminiService.syncLinkedInProfile(urlToSync);
             setCurrentUserCv(cvText);
             setCvFile(null); // Clear file when syncing from LinkedIn
         } catch (err) {
@@ -193,6 +267,22 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
         }
     };
     
+    const handleFindJobs = async () => {
+        if (!currentUserCv) {
+            setError(t('jobAssistant.error.noCv'));
+            return;
+        }
+        setAreSuggestionsLoading(true);
+        try {
+            const suggestions = await geminiService.suggestJobSearches(currentUserCv);
+            setJobSuggestions(suggestions);
+        } catch (err) {
+            setError(handleApiError(err));
+        } finally {
+            setAreSuggestionsLoading(false);
+        }
+    };
+
     const handleGenerate = async () => {
         if (!currentUserCv) {
             setError(t('jobAssistant.error.noCv'));
@@ -206,6 +296,7 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
 
         setError(null);
         setIsLoading(true);
+        setGenerationStep(1);
         
         try {
             setLoadingMessage(t('jobAssistant.status.scraping'));
@@ -227,17 +318,21 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                 chatHistory: [] // Initialize empty chat history
             };
 
+            setGenerationStep(2);
             setLoadingMessage(t('jobAssistant.status.generatingResume'));
             newApp.tailoredResume = await geminiService.generateTailoredResume(jobDetails, currentUserCv);
             
+            setGenerationStep(3);
             setLoadingMessage(t('jobAssistant.status.generatingCoverLetter'));
             newApp.coverLetter = await geminiService.generateCoverLetter(jobDetails, currentUserCv);
             
+            setGenerationStep(4);
             await onAddApplication(newApp);
             setCurrentApplication(newApp);
 
         } catch (err) {
             setError(handleApiError(err));
+            setGenerationStep(0);
         } finally {
             setIsLoading(false);
             setLoadingMessage('');
@@ -412,7 +507,10 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                         <label htmlFor="job-desc" className="block text-sm font-medium text-gray-700">{t('jobAssistant.apply.jobDescLabel')}</label>
                         <textarea id="job-desc" rows={5} value={jobDescription} onChange={e => setJobDescription(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md py-2 px-3 text-teal-dark shadow-sm focus:ring-teal-blue focus:border-teal-blue" placeholder={t('jobAssistant.apply.jobDescPlaceholder')} />
                     </div>
-                    <button onClick={handleGenerate} disabled={isLoading || isQuotaExhausted} className="w-full py-3 px-4 rounded-md text-white font-semibold bg-teal-blue hover:bg-teal-light-blue disabled:bg-gray-400">{t('jobAssistant.apply.generateButton')}</button>
+                    
+                    {isLoading && <GenerationStepper currentStep={generationStep} />}
+
+                    <button onClick={handleGenerate} disabled={isLoading || isQuotaExhausted} className="w-full py-3 px-4 rounded-md text-white font-semibold bg-teal-blue hover:bg-teal-light-blue disabled:bg-gray-400">{isLoading ? loadingMessage : t('jobAssistant.apply.generateButton')}</button>
                 </div>
             ) : (
                 <div className="bg-white rounded-lg p-6 shadow-lg space-y-4">
@@ -444,13 +542,6 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                         </div>
                     </div>
                     <button onClick={handleManualLog} className="w-full py-3 px-4 rounded-md text-white font-semibold bg-teal-green hover:bg-teal-800">Log Application</button>
-                </div>
-            )}
-            
-             {isLoading && (
-                <div className="text-center p-6 bg-white rounded-lg">
-                     <div className="w-6 h-6 border-4 border-dashed rounded-full animate-spin border-teal-blue mx-auto"></div>
-                     <p className="mt-3 text-gray-600">{loadingMessage}</p>
                 </div>
             )}
             
@@ -598,7 +689,15 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
                 <label htmlFor="linkedin-url" className="block text-sm font-medium text-gray-700">{t('jobAssistant.cv.linkedinLabel')}</label>
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <input type="url" id="linkedin-url" value={linkedInUrl} onChange={e => setLinkedInUrl(e.target.value)} className="flex-grow border-gray-300 rounded-md py-2 px-3 text-teal-dark shadow-sm" placeholder={t('jobAssistant.cv.linkedinPlaceholder')} />
+                    <input 
+                        type="url" 
+                        id="linkedin-url" 
+                        value={linkedInUrl} 
+                        onChange={e => setLinkedInUrl(e.target.value)} 
+                        disabled={isSyncing}
+                        className="flex-grow border-gray-300 rounded-md py-2 px-3 text-teal-dark shadow-sm disabled:bg-gray-100" 
+                        placeholder={t('jobAssistant.cv.linkedinPlaceholder')} 
+                    />
                     <button onClick={handleLinkedInSync} disabled={isSyncing} className="sm:w-auto w-full px-4 py-2 rounded-md text-white font-semibold bg-teal-blue hover:bg-teal-light-blue disabled:bg-gray-400 flex items-center justify-center">
                         {isSyncing ? (
                             <>
@@ -631,9 +730,27 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
             </div>
             
             {error && activeTab === 'cv' && (
-                <div className="text-red-600 p-4 bg-red-100 rounded-md text-sm">
-                    <p className="font-bold mb-2">Error:</p>
-                    <div className="whitespace-pre-wrap">{error}</div>
+                <div className="space-y-4">
+                    <div className="text-red-600 p-4 bg-red-100 rounded-md text-sm">
+                        <p className="font-bold mb-2">Error:</p>
+                        <div className="whitespace-pre-wrap">{error}</div>
+                    </div>
+                    
+                    {error.includes('LinkedIn') && (
+                        <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 text-sm text-gray-700">
+                            <h4 className="font-bold flex items-center gap-2 text-yellow-800 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                                LinkedIn Scraping Restrictions
+                            </h4>
+                            <p className="mb-2">Direct scraping is often blocked by LinkedIn. For a production app, developers use Python backend solutions:</p>
+                            <ul className="list-disc pl-5 space-y-1 mb-3 bg-white p-3 rounded border border-yellow-100">
+                                <li><strong>linkedin-scraper</strong>: Python library (GitHub) using Selenium.</li>
+                                <li><strong>Official LinkedIn API</strong>: Safe but requires approval.</li>
+                                <li><strong>Proxycurl</strong>: Third-party API for profile data.</li>
+                            </ul>
+                            <p className="font-semibold text-teal-800">For this demo, try the "Demo Profile" buttons above to simulate a successful scrape.</p>
+                        </div>
+                    )}
                 </div>
             )}
              
@@ -649,6 +766,56 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                     {localSaveStatus === 'saving' ? t('jobAssistant.autoSave.saving') : t('jobAssistant.autoSave.saved')}
                 </div>
              </div>
+
+             {/* Find Jobs Button */}
+             {currentUserCv && (
+                 <div className="mt-4 border-t border-gray-200 pt-4">
+                     <h4 className="text-lg font-semibold text-teal-dark mb-2">{t('jobAssistant.jobSearch.title')}</h4>
+                     <button 
+                        onClick={handleFindJobs} 
+                        disabled={areSuggestionsLoading}
+                        className="px-4 py-2 bg-teal-green text-white rounded-md hover:bg-teal-800 disabled:bg-gray-400 flex items-center"
+                     >
+                         {areSuggestionsLoading ? (
+                             <><svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>{t('jobAssistant.jobSearch.loading')}</>
+                         ) : t('jobAssistant.jobSearch.button')}
+                     </button>
+                     
+                     {jobSuggestions.length > 0 && (
+                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                             {jobSuggestions.map((suggestion, idx) => (
+                                 <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                     <h5 className="font-bold text-teal-blue">{suggestion.jobTitle}</h5>
+                                     <p className="text-xs text-gray-500 mt-1">{suggestion.reasoning}</p>
+                                     <div className="mt-3 flex flex-wrap gap-2">
+                                         {suggestion.keywords.map(k => (
+                                             <span key={k} className="text-xs bg-gray-200 px-2 py-1 rounded">{k}</span>
+                                         ))}
+                                     </div>
+                                     <div className="mt-4 flex gap-2">
+                                         <a 
+                                            href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(suggestion.keywords.join(' '))}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="text-xs bg-[#0077b5] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center"
+                                         >
+                                             LinkedIn
+                                         </a>
+                                         <a 
+                                            href={`https://jobinja.ir/jobs?filters%5Bkeywords%5D%5B0%5D=${encodeURIComponent(suggestion.jobTitle)}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="text-xs bg-[#00bfa5] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center"
+                                         >
+                                             Jobinja
+                                         </a>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+             )}
          </div>
     );
 

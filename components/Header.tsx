@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { PageKey, useLanguage } from '../types';
 
@@ -103,6 +104,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
               <button onClick={() => handlePageChange('job_assistant')} className="text-gray-700 hover:text-teal-blue font-medium transition-colors">
                 {t('header.jobTracker')}
               </button>
+              
               {/* Tools Dropdown */}
               <div className="relative" ref={toolsMenuRef}>
                 <button onClick={() => setIsToolsMenuOpen(prev => !prev)} className="flex items-center text-gray-700 hover:text-teal-blue font-medium transition-colors">
@@ -129,7 +131,12 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
           </div>
 
           {/* Right side buttons */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-4">
+            <button onClick={() => handlePageChange('dashboard')} className="text-gray-600 hover:text-teal-blue font-medium transition-colors flex items-center gap-1 group">
+                <svg className="w-5 h-5 text-gray-400 group-hover:text-teal-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                {t('header.dashboard')}
+            </button>
+            <div className="h-6 w-px bg-gray-300"></div>
             <a href="#" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-teal-blue transition-colors">{t('header.login')}</a>
             <a href="#" className="px-4 py-2 text-sm font-medium text-white bg-teal-blue rounded-md hover:bg-opacity-90 transition-colors">{t('header.signup')}</a>
           </div>
@@ -138,7 +145,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
           <div className="-mr-2 flex md:hidden">
             <button onClick={() => setIsMobileMenuOpen(prev => !prev)} type="button" className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none">
               <span className="sr-only">Open menu</span>
-              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           </div>
         </div>
@@ -156,7 +163,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
                 <div className="-mr-2">
                   <button onClick={() => setIsMobileMenuOpen(false)} type="button" className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100">
                      <span className="sr-only">Close menu</span>
-                     <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                     <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
               </div>
@@ -164,6 +171,7 @@ const SiteHeader: React.FC<SiteHeaderProps> = ({ currentPage, setPage, isApiHeal
                 <nav className="grid gap-y-8">
                     <button onClick={() => handlePageChange('job_assistant')} className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50 text-base font-medium text-gray-900">{t('header.resumeBuilder')}</button>
                     <button onClick={() => handlePageChange('job_assistant')} className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50 text-base font-medium text-gray-900">{t('header.jobTracker')}</button>
+                    <button onClick={() => handlePageChange('dashboard')} className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50 text-base font-medium text-gray-900 bg-gray-100">{t('header.dashboard')}</button>
                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t('header.professionalTools')}</h3>
                      {professionalTools.map(tool => (
                         <button key={tool.key} onClick={() => handlePageChange(tool.key)} className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50 text-base font-medium text-gray-900">{tool.text}</button>

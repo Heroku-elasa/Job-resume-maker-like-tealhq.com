@@ -49,6 +49,7 @@ export const fa = {
     header: {
         resumeBuilder: 'رزومه‌ساز',
         jobTracker: 'ردیاب شغل',
+        dashboard: 'پیشخوان (WP)',
         tools: 'ابزارها',
         resources: 'منابع',
         login: 'ورود',
@@ -101,6 +102,43 @@ export const fa = {
         company: 'شرکت',
         copyright: `© ${new Date().getFullYear()} Kar-Yab AI. تمام حقوق محفوظ است.`
     },
+    dashboard: {
+        welcome: 'خوش آمدید',
+        atAGlance: 'در یک نگاه',
+        quickDraft: 'پیش‌نویس سریع',
+        activity: 'فعالیت',
+        posts: 'نوشته‌ها',
+        media: 'رسانه',
+        pages: 'برگه‌ها',
+        comments: 'دیدگاه‌ها',
+        appearance: 'نمایش',
+        plugins: 'افزونه‌ها',
+        users: 'کاربران',
+        tools: 'ابزارها',
+        settings: 'تنظیمات',
+        howdy: 'سلام، مدیر',
+        screenOptions: 'تنظیمات صفحه',
+        help: 'راهنما',
+        all: 'همه',
+        published: 'منتشر شده',
+        search: 'جستجو',
+        bulkActions: 'کارهای دسته‌جمعی',
+        apply: 'اجرا',
+        filter: 'صافی',
+        title: 'عنوان',
+        author: 'نویسنده',
+        date: 'تاریخ',
+        edit: 'ویرایش',
+        quickEdit: 'ویرایش سریع',
+        trash: 'زباله‌دان',
+        view: 'نمایش',
+        stats: {
+            applications: 'درخواست',
+            lawyers: 'وکیل',
+            generatedDocs: 'سند'
+        },
+        noActivity: 'فعالیتی نیست.'
+    },
     jobAssistant: {
         heroDescription: 'رزومه و نامه پوششی خود را برای هر آگهی به صورت هوشمند آماده کنید.',
         subtitle: 'ابزارهای هوشمند برای بهینه‌سازی فرآیند درخواست شغل شما.',
@@ -143,6 +181,11 @@ export const fa = {
             syncingButton: 'در حال همگام‌سازی...',
             parsing: 'در حال پردازش فایل...'
         },
+        jobSearch: {
+            title: 'جستجوی شغل متناسب با رزومه',
+            button: 'یافتن شغل‌های مرتبط',
+            loading: 'در حال تحلیل رزومه و جستجو...'
+        },
         status: {
             draft: 'پیش‌نویس',
             pending_approval: 'در انتظار تایید',
@@ -183,6 +226,13 @@ export const fa = {
         improveButton: 'ساخت رزومه اصلاح شده (PDF/Word)',
         improvingButton: 'در حال بازنویسی...',
         improvedTitle: 'رزومه حرفه‌ای جدید شما',
+        findJobsButton: 'یافتن شغل‌های مرتبط',
+        findingJobs: 'در حال جستجو...',
+        jobsTitle: 'فرصت‌های شغلی پیشنهادی',
+        linkedin: {
+            tab: 'پروفایل لینکدین',
+            importButton: 'دریافت پروفایل و تحلیل'
+        },
         table: {
             title: 'تحلیل و وضعیت توانمندی‌های محوری',
             category: 'دسته‌بندی',
@@ -590,6 +640,7 @@ export const en = {
     header: {
         resumeBuilder: 'Resume Builder',
         jobTracker: 'Job Tracker',
+        dashboard: 'Dashboard (WP)',
         tools: 'Tools',
         resources: 'Resources',
         login: 'Log in',
@@ -642,6 +693,43 @@ export const en = {
         company: 'Company',
         copyright: `© ${new Date().getFullYear()} Kar-Yab AI. All rights reserved.`
     },
+    dashboard: {
+        welcome: 'Welcome',
+        atAGlance: 'At a Glance',
+        quickDraft: 'Quick Draft',
+        activity: 'Activity',
+        posts: 'Posts',
+        media: 'Media',
+        pages: 'Pages',
+        comments: 'Comments',
+        appearance: 'Appearance',
+        plugins: 'Plugins',
+        users: 'Users',
+        tools: 'Tools',
+        settings: 'Settings',
+        howdy: 'Howdy, Admin',
+        screenOptions: 'Screen Options',
+        help: 'Help',
+        all: 'All',
+        published: 'Published',
+        search: 'Search',
+        bulkActions: 'Bulk Actions',
+        apply: 'Apply',
+        filter: 'Filter',
+        title: 'Title',
+        author: 'Author',
+        date: 'Date',
+        edit: 'Edit',
+        quickEdit: 'Quick Edit',
+        trash: 'Trash',
+        view: 'View',
+        stats: {
+            applications: 'Applications',
+            lawyers: 'Saved Lawyers',
+            generatedDocs: 'Generated Docs'
+        },
+        noActivity: 'No activity yet.'
+    },
     jobAssistant: {
         heroDescription: 'Intelligently prepare your resume and cover letter for any job posting.',
         subtitle: 'Smart tools to optimize your job application process.',
@@ -684,6 +772,11 @@ export const en = {
             syncingButton: 'Syncing...',
             parsing: 'Parsing file...',
         },
+        jobSearch: {
+            title: 'Find Matching Jobs',
+            button: 'Suggest Jobs based on CV',
+            loading: 'Analyzing CV & Searching...'
+        },
         status: {
             draft: 'Draft',
             pending_approval: 'Pending Approval',
@@ -724,6 +817,13 @@ export const en = {
         improveButton: 'Generate Improved Resume (PDF/Word)',
         improvingButton: 'Rewriting Resume...',
         improvedTitle: 'Your New Professional Resume',
+        findJobsButton: 'Find Matching Jobs',
+        findingJobs: 'Searching...',
+        jobsTitle: 'Recommended Job Opportunities',
+        linkedin: {
+            tab: 'LinkedIn Profile',
+            importButton: 'Import & Analyze Profile'
+        },
         table: {
             title: 'Core Competencies Analysis & Status',
             category: 'Category',

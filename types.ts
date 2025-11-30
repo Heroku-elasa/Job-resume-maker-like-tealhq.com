@@ -35,7 +35,7 @@ export const useLanguage = () => {
 };
 
 // --- TYPE DEFINITIONS ---
-export type PageKey = 'legal_drafter' | 'lawyer_finder' | 'news_summarizer' | 'case_strategist' | 'notary_finder' | 'web_analyzer' | 'contract_analyzer' | 'evidence_analyzer' | 'image_generator' | 'corporate_services' | 'insurance_services' | 'job_assistant' | 'resume_analyzer';
+export type PageKey = 'dashboard' | 'legal_drafter' | 'lawyer_finder' | 'news_summarizer' | 'case_strategist' | 'notary_finder' | 'web_analyzer' | 'contract_analyzer' | 'evidence_analyzer' | 'image_generator' | 'corporate_services' | 'insurance_services' | 'job_assistant' | 'resume_analyzer' | 'hiring_assistant';
 
 export interface LatLng {
   latitude: number;
@@ -120,6 +120,12 @@ export interface JobDetails {
   skills: string[];
 }
 
+export interface JobSearchSuggestion {
+    jobTitle: string;
+    keywords: string[];
+    reasoning: string;
+}
+
 export interface JobApplication {
     id: string;
     jobTitle: string;
@@ -152,6 +158,22 @@ export interface ResumeAnalysisResult {
   predictedJobTitle: string;
   summaryAndRecommendations: string;
   analysis: ResumeAnalysisItem[];
+}
+
+// --- HIRING ASSISTANT TYPES ---
+export type CandidateStatus = 'pending' | 'analyzing' | 'shortlisted' | 'maybe' | 'rejected';
+
+export interface HiringCandidate {
+    id: string;
+    name: string;
+    fileName: string;
+    resumeText: string;
+    matchScore: number;
+    status: CandidateStatus;
+    summary: string;
+    keySkills: string[];
+    missingSkills: string[];
+    interviewQuestions?: string[];
 }
 
 
@@ -215,6 +237,7 @@ export interface AutoSaveData {
   };
   jobAssistant_currentUserCv: string;
   resumeAnalyzer_resumeText: string;
+  hiringAssistant_jobDescription: string;
 }
 
 export interface AppState {
@@ -247,67 +270,4 @@ export interface AppState {
   evidenceAnalyzerQuery: string;
   evidenceAnalysisResult: string;
   imageGenPrompt: string;
-  imageGenAspectRatio: string;
-  generatedImage: string;
-  corporateServices_nameQuery: string;
-  corporateServices_generatedNames: string[];
-  corporateServices_articlesQuery: {
-    name: string;
-    type: string;
-    activity: string;
-    capital: string;
-  };
-  corporateServices_generatedArticles: string;
-  corporateServices_complianceQuery: string;
-  corporateServices_complianceAnswer: string;
-  insurance_policyQuery: string;
-  insurance_policyAnalysis: string;
-  insurance_initialPolicyText: string;
-  insurance_claimQuery: {
-    incidentType: string;
-    description: string;
-    policyNumber: string;
-  };
-  insurance_generatedClaim: string;
-  insurance_recommendationQuery: string;
-  insurance_recommendationAnswer: string;
-  insurance_riskQuery: {
-    assetType: string;
-    description: string;
-  };
-  insurance_riskAssessmentResult: string;
-  insurance_fraudQuery: {
-    claimDescription: string;
-  };
-  insurance_fraudDetectionResult: string;
-  insurance_autoClaimQuery: string;
-  insurance_autoClaimResult: string;
-  insurance_quoteQuery: {
-    carModel: string;
-    carYear: string;
-    driverAge: string;
-    drivingHistory: string;
-  };
-  insurance_quoteResult: string;
-  insurance_lifeNeedsQuery: {
-    age: string;
-    income: string;
-    dependents: string;
-    debts: string;
-    goals: string;
-  };
-  insurance_lifeNeedsResult: string;
-  // Job Assistant
-  jobAssistant_applications: JobApplication[];
-  jobAssistant_currentUserCv: string;
-  // Resume Analyzer
-  resumeAnalyzer_resumeText: string;
-  resumeAnalyzer_analysisResult: ResumeAnalysisResult | null;
-  resumeAnalyzer_chatHistory: ChatMessage[];
-}
-export interface Checkpoint {
-  id: string;
-  timestamp: number;
-  name: string;
-  state: AppState;
-}
+  imageGen
