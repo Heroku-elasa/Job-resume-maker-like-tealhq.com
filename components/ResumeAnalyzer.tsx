@@ -1,4 +1,6 @@
 
+// ... existing imports ...
+// (imports remain the same, just showing the change in the render method)
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import mammoth from 'mammoth';
@@ -369,6 +371,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     error,
     isQuotaExhausted
 }) => {
+    // ... existing logic ...
     const { t, language } = useLanguage();
     const [activeTab, setActiveTab] = useState<'upload' | 'text' | 'linkedin'>('upload');
     const [resumeText, setResumeText] = useState(initialResumeText);
@@ -380,19 +383,15 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     const speechRecognitionRef = useRef<any>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     
-    // Separate loading state for chat to not conflict with main analysis loading
     const [isChatSending, setIsChatSending] = useState(false);
     
-    // New state for improved resume generation
     const [isImproving, setIsImproving] = useState(false);
     const [improvedResume, setImprovedResume] = useState<string | null>(null);
 
-    // LinkedIn State
     const [linkedInUrl, setLinkedInUrl] = useState('');
     const [isSyncingLinkedIn, setIsSyncingLinkedIn] = useState(false);
     const [linkedInError, setLinkedInError] = useState<string | null>(null);
 
-    // Job Suggestion State
     const [jobSuggestions, setJobSuggestions] = useState<JobSearchSuggestion[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
     
@@ -404,7 +403,6 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatHistory, isChatSending]);
 
-    // Reset chat sending state when history changes (response received)
     useEffect(() => {
         setIsChatSending(false);
     }, [chatHistory]);
@@ -559,7 +557,6 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         try {
             const suggestions = await suggestJobSearches(resumeText);
             setJobSuggestions(suggestions);
-            // Scroll to suggestions
             setTimeout(() => {
                 document.getElementById('job-suggestions')?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
@@ -581,7 +578,6 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     };
     
     const groupedResults = useMemo(() => {
-        // Safety check: Ensure analysisResult and analysisResult.analysis exist and are arrays
         if (!analysisResult || !Array.isArray(analysisResult.analysis)) {
             return {} as Record<string, ResumeAnalysisItem[]>;
         }
@@ -772,12 +768,19 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                                                 </div>
                                                 <div className="mt-4 flex gap-2">
                                                     <a 
+                                                    href={`https://jobvision.ir/jobs?keyword=${encodeURIComponent(suggestion.jobTitle)}`} 
+                                                    target="_blank" 
+                                                    rel="noreferrer"
+                                                    className="text-xs bg-[#2e3192] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
+                                                    >
+                                                        JobVision
+                                                    </a>
+                                                    <a 
                                                     href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(suggestion.keywords.join(' '))}`} 
                                                     target="_blank" 
                                                     rel="noreferrer"
                                                     className="text-xs bg-[#0077b5] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
                                                     >
-                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                                                         LinkedIn
                                                     </a>
                                                     <a 
@@ -787,14 +790,6 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                                                     className="text-xs bg-[#00bfa5] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
                                                     >
                                                         Jobinja
-                                                    </a>
-                                                     <a 
-                                                    href={`https://www.google.com/search?q=${encodeURIComponent(suggestion.jobTitle + ' jobs')}&ibp=htl;jobs`} 
-                                                    target="_blank" 
-                                                    rel="noreferrer"
-                                                    className="text-xs bg-red-500 text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center flex items-center justify-center gap-1"
-                                                    >
-                                                        Google
                                                     </a>
                                                 </div>
                                             </div>

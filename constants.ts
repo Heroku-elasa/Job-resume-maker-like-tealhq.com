@@ -43,6 +43,7 @@ export const RESUME_ANALYSIS_CRITERIA = [
 ];
 
 export const fa = {
+    // ... existing translations
     langCode: 'fa',
     dir: 'rtl',
     font: 'font-iransans',
@@ -75,6 +76,7 @@ export const fa = {
             error: 'خطا در اتصال به API.'
         }
     },
+    // ... rest of fa
     home: {
         title: 'رزومه بهتر. جستجوی سریعتر. مصاحبه‌های بیشتر.',
         subtitle: 'با مجموعه ابزارهای شغلی ما، جستجوی شغل خود را ساده کرده و شغل بعدی خود را سریعتر پیدا کنید.',
@@ -84,12 +86,41 @@ export const fa = {
             jobTracker: 'ردیاب شغل',
             matchingMode: 'حالت تطبیق',
         },
+        trust: {
+            aiPowered: 'هوش مصنوعی • حریم خصوصی',
+            users: 'مورد اعتماد بیش از ۳.۶ میلیون کاربر'
+        },
+        categories: {
+            career: 'شغلی و استخدام',
+            legal: 'حقوقی و قراردادها',
+            business: 'کسب‌وکار و ابزارها'
+        },
+        toolDescs: {
+            resume_analyzer: 'تحلیل و بهبود رزومه با هوش مصنوعی.',
+            job_assistant: 'ساخت رزومه اختصاصی برای هر شغل.',
+            hiring_assistant: 'فیلتر رزومه‌ها و تولید شرح شغل.',
+            legal_drafter: 'تنظیم قرارداد و دادخواست حقوقی.',
+            contract_analyzer: 'بررسی و تحلیل متن قراردادها.',
+            lawyer_finder: 'یافتن بهترین وکلای نزدیک شما.',
+            case_strategist: 'تدوین استراتژی پرونده حقوقی.',
+            notary_finder: 'یافتن دفاتر اسناد رسمی.',
+            corporate_services: 'ابزارهای ثبت شرکت و امور اداری.',
+            insurance_services: 'مشاوره و دریافت خسارت بیمه.',
+            news_summarizer: 'خلاصه آخرین اخبار روز.',
+            web_analyzer: 'تحلیل وب‌سایت‌ها و اسناد.',
+            evidence_analyzer: 'استخراج متن از تصاویر مدارک.',
+            image_generator: 'تولید تصاویر با هوش مصنوعی.'
+        },
         howItWorks: {
             title: 'چگونه کار می‌کند',
             step1: 'ثبت نام!',
+            desc1: 'پروفایل خود را در چند ثانیه بسازید.',
             step2: 'جستجو',
+            desc2: 'فرصت‌های شغلی ایده‌آل را پیدا کنید.',
             step3: 'درخواست',
+            desc3: 'با مدارک هوشمند درخواست دهید.',
             step4: 'رشد',
+            desc4: 'شغل رویایی خود را به دست آورید.',
             cta: 'رایگان شروع کنید'
         },
         otherFeatures: {
@@ -101,7 +132,21 @@ export const fa = {
         templates: 'قالب‌ها و نمونه‌ها',
         resources: 'منابع',
         company: 'شرکت',
-        copyright: `© ${new Date().getFullYear()} Kar-Yab AI. تمام حقوق محفوظ است.`
+        copyright: `© ${new Date().getFullYear()} Kar-Yab AI. تمام حقوق محفوظ است.`,
+        users: 'بیش از ۳.۶ میلیون کاربر',
+        links: {
+            resumeExamples: 'نمونه رزومه',
+            resumeTemplates: 'قالب رزومه',
+            coverLetterExamples: 'نمونه نامه پوششی',
+            careerHub: 'مرکز شغلی',
+            jobSearch: 'جستجوی شغل (جاب‌ویژن)',
+            careerPaths: 'مسیرهای شغلی',
+            aboutUs: 'درباره ما',
+            pricing: 'قیمت‌گذاری',
+            affiliate: 'همکاری در فروش',
+            privacy: 'حریم خصوصی',
+            terms: 'شرایط استفاده'
+        }
     },
     dashboard: {
         welcome: 'خوش آمدید',
@@ -272,13 +317,13 @@ export const fa = {
     hiringAssistant: {
         title: 'دستیار هوشمند استخدام',
         subtitle: 'رزومه‌ها را با هوش مصنوعی فیلتر کنید و بهترین استعدادها را برای موقعیت شغلی خود پیدا کنید.',
-        jdLabel: 'شرح شغل (JD)',
+        jdLabel: '۱. شرح شغل (JD) را تعریف کنید',
         jdPlaceholder: 'شرح وظایف، مهارت‌های مورد نیاز و مسئولیت‌ها را اینجا وارد کنید...',
-        uploadLabel: 'آپلود انبوه رزومه‌ها',
+        uploadLabel: '۲. رزومه‌ها را بارگذاری کنید',
         uploadPlaceholder: 'رزومه‌ها (PDF, DOCX) را اینجا بکشید و رها کنید',
         analyzing: 'در حال تحلیل نامزدها...',
         startAnalysis: 'شروع غربالگری',
-        resultsTitle: 'نتایج غربالگری',
+        resultsTitle: '۳. نتایج غربالگری',
         candidateName: 'نام نامزد',
         score: 'امتیاز تطابق',
         status: 'وضعیت',
@@ -288,8 +333,28 @@ export const fa = {
         rejected: 'رد شده',
         keySkills: 'مهارت‌های کلیدی یافت شده',
         missingSkills: 'مهارت‌های مفقود',
-        interviewQuestions: 'سوالات مصاحبه پیشنهادی'
+        interviewQuestions: 'سوالات مصاحبه پیشنهادی',
+        jdDrafter: {
+            title: "پیش‌نویس شرح شغل با AI",
+            promptLabel: "عنوان شغل یا چند کلمه کلیدی وارد کنید",
+            promptPlaceholder: "مثلاً: توسعه‌دهنده ارشد React در تهران",
+            button: "تولید پیش‌نویس",
+            generating: "در حال تولید...",
+            uploadButton: "یا آپلود فایل (PDF/DOCX)",
+            useExample: "استفاده از نمونه"
+        },
+        examples: {
+            dev: {
+                title: "مهندس نرم‌افزار (Frontend)",
+                description: "ما به دنبال یک مهندس فرانت‌اند با تجربه و مسلط به React و TypeScript هستیم. مسئولیت اصلی شما توسعه و نگهداری رابط کاربری وب‌اپلیکیشن‌های ما خواهد بود. شما با تیم محصول و طراحان برای ایجاد یک تجربه کاربری بی‌نظیر همکاری خواهید کرد.\n\nنیازمندی‌ها:\n- حداقل ۳ سال تجربه کاری با React\n- تسلط کامل بر TypeScript، HTML5 و CSS3\n- آشنایی با ابزارهای Webpack و Git\n- روحیه کار تیمی و مهارت حل مسئله"
+            },
+            marketing: {
+                title: "مدیر بازاریابی دیجیتال",
+                description: "ما به دنبال یک مدیر بازاریابی دیجیتال خلاق و داده‌محور برای رهبری استراتژی‌های آنلاین خود هستیم. شما مسئولیت کمپین‌های SEO، SEM، ایمیل مارکتینگ و شبکه‌های اجتماعی را بر عهده خواهید داشت.\n\nنیازمندی‌ها:\n- حداقل ۵ سال تجربه در بازاریابی دیجیتال\n- تسلط بر Google Analytics, Google Ads و ابزارهای SEO\n- تجربه در مدیریت کمپین‌های موفق در شبکه‌های اجتماعی\n- توانایی تحلیل داده‌ها و ارائه گزارش‌های عملکرد"
+            }
+        }
     },
+    // ... rest of fa
     generatorForm: {
         title: 'مشخصات سند حقوقی',
         docType: 'نوع سند',
@@ -705,12 +770,41 @@ export const en = {
             jobTracker: 'Job Tracker',
             matchingMode: 'Matching Mode',
         },
+        trust: {
+            aiPowered: 'AI Powered • Privacy First',
+            users: 'Trusted by 3.6M+ Users'
+        },
+        categories: {
+            career: 'Career & Hiring',
+            legal: 'Legal & Contracts',
+            business: 'Business & Tools'
+        },
+        toolDescs: {
+            resume_analyzer: 'Analyze & improve your CV with AI.',
+            job_assistant: 'Tailor resumes for specific jobs.',
+            hiring_assistant: 'Filter candidates & generate JDs.',
+            legal_drafter: 'Draft contracts & petitions.',
+            contract_analyzer: 'Review legal documents.',
+            lawyer_finder: 'Find top lawyers nearby.',
+            case_strategist: 'Plan your legal strategy.',
+            notary_finder: 'Locate notary offices.',
+            corporate_services: 'Company registration tools.',
+            insurance_services: 'Insurance claims & advice.',
+            news_summarizer: 'Summarize latest news.',
+            web_analyzer: 'Analyze websites & docs.',
+            evidence_analyzer: 'Extract text from images.',
+            image_generator: 'Generate visuals with AI.'
+        },
         howItWorks: {
             title: 'How it Works',
             step1: 'Sign Up!',
+            desc1: 'Create your profile in seconds.',
             step2: 'Search',
+            desc2: 'Find perfect opportunities.',
             step3: 'Apply',
+            desc3: 'Apply with AI-tailored docs.',
             step4: 'Grow',
+            desc4: 'Land your dream job.',
             cta: 'Get Started for Free'
         },
         otherFeatures: {
@@ -722,7 +816,21 @@ export const en = {
         templates: 'Templates & Examples',
         resources: 'Resources',
         company: 'Company',
-        copyright: `© ${new Date().getFullYear()} Kar-Yab AI. All rights reserved.`
+        copyright: `© ${new Date().getFullYear()} Kar-Yab AI. All rights reserved.`,
+        users: 'Over 3.6 Million Users',
+        links: {
+            resumeExamples: 'Resume Examples',
+            resumeTemplates: 'Resume Templates',
+            coverLetterExamples: 'Cover Letter Examples',
+            careerHub: 'Career Hub',
+            jobSearch: 'Job Search (JobVision)',
+            careerPaths: 'Career Paths',
+            aboutUs: 'About Us',
+            pricing: 'Pricing',
+            affiliate: 'Affiliate Program',
+            privacy: 'Privacy Policy',
+            terms: 'Terms of Service'
+        }
     },
     dashboard: {
         welcome: 'Welcome',
@@ -856,6 +964,9 @@ export const en = {
         improveButton: 'Generate Improved Resume (PDF/Word)',
         improvingButton: 'Rewriting Resume...',
         improvedTitle: 'Your New Professional Resume',
+        findJobsButton: 'Find Matching Jobs',
+        findingJobs: 'Searching...',
+        jobsTitle: 'Suggested Job Opportunities',
         linkedin: {
             tab: 'LinkedIn Profile',
             importButton: 'Import & Analyze Profile'
@@ -887,6 +998,47 @@ export const en = {
             finalizing: 'Finalizing analysis...'
         }
     },
+    hiringAssistant: {
+        title: 'Smart Hiring Assistant',
+        subtitle: 'Filter resumes with AI and find the best talent for your job opening.',
+        jdLabel: '1. Define Job Description (JD)',
+        jdPlaceholder: 'Enter duties, required skills, and responsibilities here...',
+        uploadLabel: '2. Upload Resumes',
+        uploadPlaceholder: 'Drag & drop resumes (PDF, DOCX) here',
+        analyzing: 'Analyzing candidates...',
+        startAnalysis: 'Start Screening',
+        resultsTitle: '3. Screening Results',
+        candidateName: 'Candidate Name',
+        score: 'Match Score',
+        status: 'Status',
+        viewDetails: 'View Details',
+        shortlisted: 'Shortlisted',
+        maybe: 'Maybe',
+        rejected: 'Rejected',
+        keySkills: 'Key Skills Found',
+        missingSkills: 'Missing Skills',
+        interviewQuestions: 'Suggested Interview Questions',
+        jdDrafter: {
+            title: "Draft JD with AI",
+            promptLabel: "Enter Job Title or Keywords",
+            promptPlaceholder: "e.g., Senior React Developer in Tehran",
+            button: "Draft JD",
+            generating: "Drafting...",
+            uploadButton: "Or Upload File (PDF/DOCX)",
+            useExample: "Use Example"
+        },
+        examples: {
+            dev: {
+                title: "Software Engineer (Frontend)",
+                description: "We are looking for an experienced Frontend Engineer proficient in React and TypeScript. You will be responsible for developing and maintaining the user interface of our web applications. You will collaborate with the product team and designers to create a seamless user experience.\n\nRequirements:\n- Minimum 3 years of experience with React\n- Mastery of TypeScript, HTML5, and CSS3\n- Familiarity with Webpack and Git tools\n- Teamwork spirit and problem-solving skills"
+            },
+            marketing: {
+                title: "Digital Marketing Manager",
+                description: "We are seeking a creative and data-driven Digital Marketing Manager to lead our online strategies. You will be responsible for SEO, SEM, email marketing, and social media campaigns.\n\nRequirements:\n- Minimum 5 years of experience in digital marketing\n- Mastery of Google Analytics, Google Ads, and SEO tools\n- Experience managing successful social media campaigns\n- Ability to analyze data and present performance reports"
+            }
+        }
+    },
+    // ... rest of en
     generatorForm: {
         title: 'Document Details',
         docType: 'Document Type',

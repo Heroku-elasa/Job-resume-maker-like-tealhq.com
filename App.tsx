@@ -124,6 +124,15 @@ const initialState: AppState = {
   hiringAssistant_candidates: [],
 };
 
+// Define ToolWrapper outside to prevent re-mounting on every render
+const ToolWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
+  <div className="bg-white text-teal-dark min-h-screen">
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {children}
+    </main>
+  </div>
+);
+
 const App: React.FC = () => {
   const { language, t } = useLanguage();
   const [state, setState] = useState<AppState>(initialState);
@@ -140,10 +149,6 @@ const App: React.FC = () => {
   const preparedSearchQueryRef = useRef<{ for: 'lawyer_finder' | 'notary_finder' | null; query: string }>({ for: null, query: '' });
   const [preparedSearchQuery, setPreparedSearchQuery] = useState(preparedSearchQueryRef.current);
 
-  // Use a ref for currentApplicationId to pass to JobAssistant via state if needed, 
-  // though JobAssistant manages its own "current" state usually. 
-  // For Dashboard edit, we need to force JobAssistant to open a specific app.
-  // We'll add a temporary state for "appToEdit"
   const [appToEdit, setAppToEdit] = useState<JobApplication | null>(null);
 
   const saveTimeout = useRef<number | null>(null);
@@ -200,7 +205,6 @@ const App: React.FC = () => {
     }
   }, []);
   
-  // FIX: Moved handleAnalyzeResume before the useEffect that calls it to fix block-scoped variable error.
   const handleAnalyzeResume = useCallback(async (resumeText: string) => {
     setIsLoading(true);
     setIsApiError(null);
@@ -282,11 +286,6 @@ const App: React.FC = () => {
     };
   }, [triggerSave]);
 
-
-  // --- Checkpoint Management ---
-  // ... (no changes needed)
-
-  // --- Page Navigation ---
   const setPage = (page: 'home' | PageKey) => {
     setState(produce(draft => { draft.page = page; }));
     setIsApiError(null); // Clear errors on page change
@@ -734,15 +733,6 @@ const App: React.FC = () => {
 
     const pageProps = { setPage, onOpenAIGuide: () => setIsAIGuideOpen(true) };
     if (state.page === 'home') return <HomePage {...pageProps} />;
-    
-    // Wrap other pages in a standard container for consistent look
-    const ToolWrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
-      <div className="bg-white text-teal-dark min-h-screen">
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
-      </div>
-    );
     
     switch (state.page) {
       case 'legal_drafter':

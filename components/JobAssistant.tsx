@@ -1,4 +1,6 @@
 
+// ... imports
+// (imports remain the same)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { produce } from 'immer';
 import { useDropzone } from 'react-dropzone';
@@ -21,6 +23,7 @@ interface JobAssistantProps {
     onClearAppToEdit?: () => void;
 }
 
+// ... helper functions (fileToBase64, fileToText, GenerationStepper) remain the same
 const fileToBase64 = (file: File): Promise<string> => 
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -119,12 +122,12 @@ const GenerationStepper: React.FC<{ currentStep: number }> = ({ currentStep }) =
     );
 };
 
-
 const JobAssistant: React.FC<JobAssistantProps> = ({ 
     applications, currentUserCv, setCurrentUserCv, 
     onAddApplication, onUpdateApplication, handleApiError, isQuotaExhausted,
     initialAppToEdit, onClearAppToEdit
 }) => {
+    // ... existing state and effects ...
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'apply' | 'dashboard' | 'cv'>('apply');
     
@@ -476,6 +479,7 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
     
     const allStatuses: JobApplicationStatus[] = ['draft', 'pending_approval', 'applying', 'applied', 'viewed', 'interview_scheduled', 'offer_received', 'rejected', 'error'];
 
+    // ... render functions (ApplyTab, DashboardTab, CvTab)
     const renderApplyTab = () => (
         <div className="space-y-8">
             <div className="flex justify-center mb-6">
@@ -793,6 +797,14 @@ const JobAssistant: React.FC<JobAssistantProps> = ({
                                          ))}
                                      </div>
                                      <div className="mt-4 flex gap-2">
+                                         <a 
+                                            href={`https://jobvision.ir/jobs?keyword=${encodeURIComponent(suggestion.jobTitle)}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="text-xs bg-[#2e3192] text-white px-3 py-1.5 rounded hover:opacity-90 flex-1 text-center"
+                                         >
+                                             JobVision
+                                         </a>
                                          <a 
                                             href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(suggestion.keywords.join(' '))}`} 
                                             target="_blank" 

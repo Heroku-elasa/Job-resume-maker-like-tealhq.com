@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PageKey, useLanguage } from '../types';
 
@@ -16,19 +17,19 @@ const SiteFooter: React.FC<SiteFooterProps> = ({ setPage }) => {
             { text: t('header.legal_drafter'), action: () => setPage('legal_drafter') },
         ],
         templates: [
-            { text: "Resume Examples", href: "#" },
-            { text: "Resume Templates", href: "#" },
-            { text: "Cover Letter Examples", href: "#" },
+            { text: t('footer.links.resumeExamples'), href: "#" },
+            { text: t('footer.links.resumeTemplates'), href: "#" },
+            { text: t('footer.links.coverLetterExamples'), href: "#" },
         ],
         resources: [
-            { text: "Career Hub", href: "#" },
-            { text: "Job Search", href: "#" },
-            { text: "Career Paths", href: "#" },
+            { text: t('footer.links.careerHub'), href: "#" },
+            { text: t('footer.links.jobSearch'), href: "https://jobvision.ir" },
+            { text: t('footer.links.careerPaths'), href: "#" },
         ],
         company: [
-            { text: "About Us", href: "#" },
-            { text: "Pricing", href: "#" },
-            { text: "Affiliate Program", href: "#" },
+            { text: t('footer.links.aboutUs'), href: "#" },
+            { text: t('footer.links.pricing'), href: "#" },
+            { text: t('footer.links.affiliate'), href: "#" },
         ]
     };
 
@@ -38,7 +39,7 @@ const SiteFooter: React.FC<SiteFooterProps> = ({ setPage }) => {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
                     <div className="col-span-2 md:col-span-1 mb-8 md:mb-0">
                          <span className="text-2xl font-bold text-white mb-4">Kar-Yab AI</span>
-                         <p className="text-sm text-gray-300 mt-4">Over 3.6 Million Users</p>
+                         <p className="text-sm text-gray-300 mt-4">{t('footer.users')}</p>
                     </div>
                     <div className="space-y-4">
                         <h2 className="text-sm font-semibold uppercase tracking-wider">{t('footer.tools')}</h2>
@@ -70,8 +71,8 @@ const SiteFooter: React.FC<SiteFooterProps> = ({ setPage }) => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center text-sm">
                     <p>{t('footer.copyright')}</p>
                     <div className="flex space-x-4 mt-4 sm:mt-0">
-                        <a href="#" className="hover:text-white">Privacy Policy</a>
-                        <a href="#" className="hover:text-white">Terms of Service</a>
+                        <a href="#" className="hover:text-white">{t('footer.links.privacy')}</a>
+                        <a href="#" className="hover:text-white">{t('footer.links.terms')}</a>
                     </div>
                 </div>
             </div>
